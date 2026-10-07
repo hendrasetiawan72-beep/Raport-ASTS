@@ -267,6 +267,147 @@ export const PrintSettingsView: React.FC = () => {
             </label>
           </div>
         </div>
+
+        {/* Tata Letak Logo Kop Header Rapor */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4 md:col-span-2">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">
+                Tata Letak Logo Kop Header Raport Siap Cetak
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Atur posisi logo sekolah pada kop laporan hasil belajar cetak (Kiri, Tengah, Kanan, Dual Logo) dan geser posisi manual.
+              </p>
+            </div>
+            <span className="font-mono text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 text-xs font-bold uppercase">
+              {printSettings.reportHeaderLogoPosition || 'left'} ({printSettings.reportHeaderLogoSize || 52}px)
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            {/* 1. Posisi Logo */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+              <span className="font-bold text-slate-800 block">Posisi Logo Kop:</span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { id: 'left', label: '👈 Kiri (Standar)' },
+                  { id: 'center', label: '👆 Tengah (Atas)' },
+                  { id: 'right', label: '👉 Kanan' },
+                  { id: 'dual', label: '↔️ Dual Logo' },
+                ].map((pos) => (
+                  <button
+                    key={pos.id}
+                    type="button"
+                    onClick={() => updatePrintSettings({ reportHeaderLogoPosition: pos.id as any })}
+                    className={`py-2 px-2 rounded-lg text-center font-bold border transition-all ${
+                      (printSettings.reportHeaderLogoPosition || 'left') === pos.id
+                        ? 'bg-blue-600 text-white border-blue-700 shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {pos.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => updatePrintSettings({ reportHeaderLogoPosition: 'hidden' })}
+                className={`w-full py-1.5 px-2 rounded-lg text-center border text-[11px] font-semibold transition-all ${
+                  printSettings.reportHeaderLogoPosition === 'hidden'
+                    ? 'bg-red-50 border-red-500 text-red-800 font-bold'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                ✕ Sembunyikan Logo (Hanya Teks)
+              </button>
+            </div>
+
+            {/* 2. Ukuran Tinggi Logo */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+              <div className="flex justify-between items-center font-bold text-slate-800">
+                <span>Ukuran Tinggi Logo (px):</span>
+                <span className="font-mono text-blue-700 bg-white px-2 py-0.5 rounded border border-slate-200">
+                  {printSettings.reportHeaderLogoSize || 52} px
+                </span>
+              </div>
+              <input
+                type="range"
+                min="32"
+                max="80"
+                step="2"
+                value={printSettings.reportHeaderLogoSize || 52}
+                onChange={(e) =>
+                  updatePrintSettings({ reportHeaderLogoSize: Number(e.target.value) })
+                }
+                className="w-full accent-blue-600 cursor-pointer"
+              />
+              <div className="flex gap-1">
+                {[
+                  { label: '40px', val: 40 },
+                  { label: '52px', val: 52 },
+                  { label: '64px', val: 64 },
+                ].map((preset) => (
+                  <button
+                    key={preset.val}
+                    type="button"
+                    onClick={() => updatePrintSettings({ reportHeaderLogoSize: preset.val })}
+                    className={`flex-1 py-1 rounded text-[11px] font-semibold border ${
+                      (printSettings.reportHeaderLogoSize || 52) === preset.val
+                        ? 'bg-blue-600 text-white border-blue-700'
+                        : 'bg-white text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. Geser Posisi Manual X & Y */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+              <div className="flex justify-between items-center font-bold text-slate-800">
+                <span>Geser Posisi Manual (X / Y):</span>
+                <span className="font-mono text-blue-700 bg-white px-2 py-0.5 rounded border border-slate-200 text-[11px]">
+                  X:{printSettings.reportHeaderLogoOffsetX || 0}px | Y:{printSettings.reportHeaderLogoOffsetY || 0}px
+                </span>
+              </div>
+              <div>
+                <div className="flex justify-between text-[11px] text-slate-600 mb-0.5">
+                  <span>Horizontal (X):</span>
+                  <span className="font-mono font-bold text-blue-800">{printSettings.reportHeaderLogoOffsetX || 0} px</span>
+                </div>
+                <input
+                  type="range"
+                  min="-40"
+                  max="40"
+                  step="2"
+                  value={printSettings.reportHeaderLogoOffsetX || 0}
+                  onChange={(e) =>
+                    updatePrintSettings({ reportHeaderLogoOffsetX: Number(e.target.value) })
+                  }
+                  className="w-full accent-blue-600 cursor-pointer"
+                />
+              </div>
+              <div>
+                <div className="flex justify-between text-[11px] text-slate-600 mb-0.5">
+                  <span>Vertikal (Y):</span>
+                  <span className="font-mono font-bold text-blue-800">{printSettings.reportHeaderLogoOffsetY || 0} px</span>
+                </div>
+                <input
+                  type="range"
+                  min="-15"
+                  max="20"
+                  step="1"
+                  value={printSettings.reportHeaderLogoOffsetY || 0}
+                  onChange={(e) =>
+                    updatePrintSettings({ reportHeaderLogoOffsetY: Number(e.target.value) })
+                  }
+                  className="w-full accent-blue-600 cursor-pointer"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

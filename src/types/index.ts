@@ -173,6 +173,15 @@ export interface PrintSettings {
   colWidthSumatif?: number; // Lebar kolom Nilai Sumatif (px)
   homeroomSignatureRightOffset?: number; // Offset posisi tanda tangan wali kelas (px)
   identityRightOffset?: number; // Offset posisi identitas semester/kelas/fase (px)
+  // Manual Kop / Header Logo Layout Settings for Print-Ready Report Card
+  reportHeaderLogoPosition?: 'left' | 'center' | 'right' | 'dual' | 'hidden';
+  reportHeaderLogoSize?: number; // Tinggi logo kop dalam px (e.g. 36 - 75px)
+  reportHeaderLogoOffsetX?: number; // Pergeseran horizontal posisi logo kop dalam px
+  reportHeaderLogoOffsetY?: number; // Pergeseran vertikal posisi logo kop dalam px
+  reportHeaderSecondaryLogoUrl?: string; // URL logo sekunder (kanan) untuk mode dual logo
+  reportHeaderSecondaryLogoSize?: number; // Tinggi logo sekunder dalam px
+  reportHeaderBorderWidth?: number; // Ketebalan garis pembatas kop (0, 1, 2, 3 px)
+  reportHeaderCustomSubtitle?: string; // Subjudul kustom kop jika ingin diubah manual
 }
 
 export interface LegerParseResult {

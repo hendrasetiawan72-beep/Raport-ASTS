@@ -576,4 +576,11 @@ export const initialPrintSettings: PrintSettings = {
   colWidthSumatif: 56,
   homeroomSignatureRightOffset: 0,
   identityRightOffset: 0,
+  reportHeaderLogoPosition: 'left',
+  reportHeaderLogoSize: 52,
+  reportHeaderLogoOffsetX: 0,
+  reportHeaderLogoOffsetY: 0,
+  reportHeaderSecondaryLogoUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png',
+  reportHeaderSecondaryLogoSize: 48,
+  reportHeaderBorderWidth: 2,
 };

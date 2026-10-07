@@ -55,9 +55,9 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen }) =
       case 'vintage-parchment':
         return 'bg-[#F5EFE6]/95 border-[#DCD2C3] text-[#3D332A]';
       case 'vintage-clean':
-        return 'bg-white/95 border-[#E2DDD5] text-[#2C241E]';
+        return 'bg-white/95 border-slate-200 text-[#2C241E]';
       default:
-        return 'bg-[#FCFAF7]/95 border-[#E5DFD5] text-[#322922]';
+        return 'bg-white/95 border-slate-200 text-[#2C241E]';
     }
   };
 

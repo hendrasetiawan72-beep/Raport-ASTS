@@ -3,26 +3,26 @@
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    color: #372e27;
-    background-color: #f7f5f0;
+    color: #2c241e;
+    background-color: #ffffff;
   }
 }
 
-/* Custom scrollbars for data tables in warm pastel style */
+/* Custom scrollbars for data tables in clean style */
 .custom-scrollbar::-webkit-scrollbar {
   width: 7px;
   height: 7px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #f2eee6;
+  background: #f8f8f8;
   border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #d3cbbe;
+  background: #d4d4d4;
   border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #b8ad9c;
+  background: #a3a3a3;
 }
 
 /* Formal Document Styles for Rapor & Leger */
@@ -37,22 +37,24 @@
 @media print {
   @page {
     size: A4 portrait;
-    margin: 5mm 8mm 5mm 8mm;
+    margin: 4mm 6mm 4mm 6mm;
   }
 
   @page landscape-ledger {
     size: A4 landscape;
-    margin: 5mm 8mm 5mm 8mm;
+    margin: 4mm 6mm 4mm 6mm;
   }
 
-  html, body {
+  html, body, #root, .min-h-screen, main, .print-area {
     background-color: #ffffff !important;
+    background: #ffffff !important;
     color: #000000 !important;
     line-height: 1.15;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     margin: 0 !important;
     padding: 0 !important;
+    box-shadow: none !important;
   }
 
   /* Hide everything not in the active print document */
@@ -67,15 +69,17 @@
     display: none !important;
   }
 
-  /* Document containers take full page and guarantee 1 single page */
+  /* Document containers take full page and guarantee clean white output */
   .printable-document {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
     box-shadow: none !important;
     border: none !important;
     padding: 0 !important;
     margin: 0 auto !important;
     width: 100% !important;
     max-width: 100% !important;
-    max-height: 286mm !important;
+    max-height: 288mm !important;
     overflow: hidden !important;
     display: block !important;
     page-break-inside: avoid !important;
@@ -97,6 +101,7 @@
   table.report-table {
     border-collapse: collapse !important;
     width: 100% !important;
+    background-color: #ffffff !important;
   }
   table.report-table th,
   table.report-table td {
@@ -104,5 +109,6 @@
     padding-top: 1.5px !important;
     padding-bottom: 1.5px !important;
     line-height: 1.15 !important;
+    background-color: transparent !important;
   }
 }

@@ -27,6 +27,8 @@ import {
   X,
   FileSignature,
   BookOpen,
+  Image as ImageIcon,
+  Move,
 } from 'lucide-react';
 import { Student, Subject, SubjectCategory } from '../../types';
 
@@ -69,7 +71,7 @@ export const ReportPtsView: React.FC = () => {
   // Mode: single student view vs batch all students view for printing
   const [printAllStudentsMode, setPrintAllStudentsMode] = useState(false);
   const [showLayoutEditor, setShowLayoutEditor] = useState(false);
-  const [activeLayoutTab, setActiveLayoutTab] = useState<'signatures' | 'columns' | 'subjects'>('signatures');
+  const [activeLayoutTab, setActiveLayoutTab] = useState<'header_kop' | 'signatures' | 'columns' | 'subjects'>('header_kop');
   const [showSubjectNameModal, setShowSubjectNameModal] = useState(false);
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
   const [editingSubjectNameVal, setEditingSubjectNameVal] = useState<string>('');
@@ -87,6 +89,55 @@ export const ReportPtsView: React.FC = () => {
   const currentSigWidth =
     schoolProfile.headmasterSignatureWidth || printSettings.headmasterSignatureWidth || 230;
   const docFontSize = printSettings.documentFontSizePt || 8.5;
+
+  // Manual Kop / Header Logo Layout measurements
+  const reportLogoPos = printSettings.reportHeaderLogoPosition || 'left';
+  const reportLogoSize = printSettings.reportHeaderLogoSize || 52;
+  const reportLogoOffsetX = printSettings.reportHeaderLogoOffsetX || 0;
+  const reportLogoOffsetY = printSettings.reportHeaderLogoOffsetY || 0;
+  const reportSecLogoUrl =
+    printSettings.reportHeaderSecondaryLogoUrl ||
+    'https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png';
+  const reportSecLogoSize = printSettings.reportHeaderSecondaryLogoSize || 48;
+  const reportBorderWidth =
+    printSettings.reportHeaderBorderWidth !== undefined
+      ? printSettings.reportHeaderBorderWidth
+      : 2;
+  const reportCustomSubtitle = printSettings.reportHeaderCustomSubtitle;
+
+  const handleSetReportLogoPos = (
+    pos: 'left' | 'center' | 'right' | 'dual' | 'hidden'
+  ) => {
+    updatePrintSettings({ reportHeaderLogoPosition: pos });
+  };
+
+  const handleSetReportLogoSize = (size: number) => {
+    updatePrintSettings({ reportHeaderLogoSize: size });
+  };
+
+  const handleSetReportLogoOffsetX = (offset: number) => {
+    updatePrintSettings({ reportHeaderLogoOffsetX: offset });
+  };
+
+  const handleSetReportLogoOffsetY = (offset: number) => {
+    updatePrintSettings({ reportHeaderLogoOffsetY: offset });
+  };
+
+  const handleSetReportBorderWidth = (width: number) => {
+    updatePrintSettings({ reportHeaderBorderWidth: width });
+  };
+
+  const handleSetReportSecLogoUrl = (url: string) => {
+    updatePrintSettings({ reportHeaderSecondaryLogoUrl: url });
+  };
+
+  const handleSetReportSecLogoSize = (size: number) => {
+    updatePrintSettings({ reportHeaderSecondaryLogoSize: size });
+  };
+
+  const handleSetReportCustomSubtitle = (sub: string) => {
+    updatePrintSettings({ reportHeaderCustomSubtitle: sub });
+  };
 
   // Manual layout measurements
   const colNo = printSettings.colWidthNo || 26;
@@ -160,6 +211,12 @@ export const ReportPtsView: React.FC = () => {
       headmasterSignatureHeight: 85,
       headmasterSignatureWidth: 230,
       documentFontSizePt: 8.5,
+      reportHeaderLogoPosition: 'left',
+      reportHeaderLogoSize: 52,
+      reportHeaderLogoOffsetX: 0,
+      reportHeaderLogoOffsetY: 0,
+      reportHeaderBorderWidth: 2,
+      reportHeaderCustomSubtitle: '',
     });
     updateSchoolProfile({
       headmasterSignatureHeight: 85,
@@ -272,49 +329,164 @@ export const ReportPtsView: React.FC = () => {
     return (
       <div
         key={student.id}
-        className={`bg-white px-7 py-3 sm:px-8 sm:py-3.5 max-w-[210mm] mx-auto shadow-md border border-slate-200 text-black leading-tight font-document printable-document box-border overflow-hidden ${
+        className={`bg-white px-7 py-3 sm:px-8 sm:py-3.5 max-w-[210mm] mx-auto shadow-sm border border-slate-200 text-black leading-tight font-document printable-document box-border overflow-hidden print:border-none print:shadow-none print:m-0 print:p-0 ${
           isBatch ? 'page-break-after mb-8' : ''
         }`}
         style={{
           maxHeight: '284mm',
           fontSize: `${docFontSize}pt`,
+          backgroundColor: '#ffffff',
         }}
       >
-        {/* Document Header with School Logo and Official Titles */}
-        <div className="flex items-center justify-between border-b-2 border-black pb-1.5 mb-1.5">
-          <div className="w-13 h-13 shrink-0 flex items-center justify-center">
-            <img
-              src={schoolProfile.logoUrl}
-              alt="Logo SMK Muhammadiyah Bawang"
-              className="max-h-13 max-w-13 object-contain"
-            />
-          </div>
-
-          <div className="text-center flex-1 px-2">
-            <h1
-              style={{ fontSize: `${(docFontSize * 1.3).toFixed(1)}pt` }}
-              className="font-bold tracking-wider uppercase font-document leading-tight"
-            >
-              LAPORAN HASIL BELAJAR
-            </h1>
-            <h2
-              style={{ fontSize: `${(docFontSize * 1.1).toFixed(1)}pt` }}
-              className="font-bold tracking-wide uppercase font-document mt-0.5 leading-tight"
-            >
-              ASESMEN SUMATIF TENGAH SEMESTER
-            </h2>
+        {/* Document Header with School Logo and Official Titles (Manual Position Layout) */}
+        {reportLogoPos === 'center' ? (
+          <div
+            style={{
+              borderBottomWidth: `${reportBorderWidth}px`,
+            }}
+            className={`border-black pb-1 mb-1.5 text-center ${reportBorderWidth > 0 ? 'border-b' : ''}`}
+          >
             <div
-              style={{ fontSize: `${(docFontSize * 0.95).toFixed(1)}pt` }}
-              className="font-semibold uppercase text-slate-800 mt-0.5"
+              className="flex justify-center mb-1"
+              style={{
+                transform: `translate(${reportLogoOffsetX}px, ${reportLogoOffsetY}px)`,
+              }}
             >
-              {schoolProfile.name}
+              <img
+                src={schoolProfile.logoUrl}
+                alt={schoolProfile.name}
+                style={{
+                  height: `${reportLogoSize}px`,
+                  maxHeight: `${reportLogoSize}px`,
+                }}
+                className="object-contain"
+              />
+            </div>
+            <div>
+              <h1
+                style={{ fontSize: `${(docFontSize * 1.3).toFixed(1)}pt` }}
+                className="font-bold tracking-wider uppercase font-document leading-tight"
+              >
+                LAPORAN HASIL BELAJAR
+              </h1>
+              <h2
+                style={{ fontSize: `${(docFontSize * 1.1).toFixed(1)}pt` }}
+                className="font-bold tracking-wide uppercase font-document mt-0.5 leading-tight"
+              >
+                ASESMEN SUMATIF TENGAH SEMESTER
+              </h2>
+              <div
+                style={{ fontSize: `${(docFontSize * 0.95).toFixed(1)}pt` }}
+                className="font-semibold uppercase text-slate-800 mt-0.5"
+              >
+                {reportCustomSubtitle || schoolProfile.name}
+              </div>
             </div>
           </div>
+        ) : (
+          <div
+            style={{
+              borderBottomWidth: `${reportBorderWidth}px`,
+            }}
+            className={`flex items-center justify-between border-black pb-1 mb-1.5 ${
+              reportBorderWidth > 0 ? 'border-b' : ''
+            }`}
+          >
+            {/* Left Slot: Logo Utama atau Balance Spacer */}
+            <div
+              style={{
+                width: `${Math.max(reportLogoSize + 8, 56)}px`,
+                minWidth: `${Math.max(reportLogoSize + 8, 56)}px`,
+              }}
+              className="shrink-0 flex items-center justify-center"
+            >
+              {(reportLogoPos === 'left' || reportLogoPos === 'dual') && (
+                <div
+                  style={{
+                    transform: `translate(${reportLogoOffsetX}px, ${reportLogoOffsetY}px)`,
+                  }}
+                  className="flex items-center justify-center"
+                >
+                  <img
+                    src={schoolProfile.logoUrl}
+                    alt={schoolProfile.name}
+                    style={{
+                      height: `${reportLogoSize}px`,
+                      maxHeight: `${reportLogoSize}px`,
+                      maxWidth: `${Math.max(reportLogoSize + 8, 56)}px`,
+                    }}
+                    className="object-contain"
+                  />
+                </div>
+              )}
+            </div>
 
-          <div className="w-13 h-13 shrink-0 flex items-center justify-center">
-            {/* Balance container */}
+            {/* Center: Kop Titles */}
+            <div className="text-center flex-1 px-2">
+              <h1
+                style={{ fontSize: `${(docFontSize * 1.3).toFixed(1)}pt` }}
+                className="font-bold tracking-wider uppercase font-document leading-tight"
+              >
+                LAPORAN HASIL BELAJAR
+              </h1>
+              <h2
+                style={{ fontSize: `${(docFontSize * 1.1).toFixed(1)}pt` }}
+                className="font-bold tracking-wide uppercase font-document mt-0.5 leading-tight"
+              >
+                ASESMEN SUMATIF TENGAH SEMESTER
+              </h2>
+              <div
+                style={{ fontSize: `${(docFontSize * 0.95).toFixed(1)}pt` }}
+                className="font-semibold uppercase text-slate-800 mt-0.5"
+              >
+                {reportCustomSubtitle || schoolProfile.name}
+              </div>
+            </div>
+
+            {/* Right Slot: Logo Kanan, Logo Sekunder, atau Balance Spacer */}
+            <div
+              style={{
+                width: `${Math.max(reportLogoSize + 8, 56)}px`,
+                minWidth: `${Math.max(reportLogoSize + 8, 56)}px`,
+              }}
+              className="shrink-0 flex items-center justify-center"
+            >
+              {reportLogoPos === 'right' && (
+                <div
+                  style={{
+                    transform: `translate(${reportLogoOffsetX}px, ${reportLogoOffsetY}px)`,
+                  }}
+                  className="flex items-center justify-center"
+                >
+                  <img
+                    src={schoolProfile.logoUrl}
+                    alt={schoolProfile.name}
+                    style={{
+                      height: `${reportLogoSize}px`,
+                      maxHeight: `${reportLogoSize}px`,
+                      maxWidth: `${Math.max(reportLogoSize + 8, 56)}px`,
+                    }}
+                    className="object-contain"
+                  />
+                </div>
+              )}
+              {reportLogoPos === 'dual' && reportSecLogoUrl && (
+                <div className="flex items-center justify-center">
+                  <img
+                    src={reportSecLogoUrl}
+                    alt="Logo Sekunder"
+                    style={{
+                      height: `${reportSecLogoSize}px`,
+                      maxHeight: `${reportSecLogoSize}px`,
+                      maxWidth: `${Math.max(reportLogoSize + 8, 56)}px`,
+                    }}
+                    className="object-contain"
+                  />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Identity Grid (Exact match with reference sheet - Semester, Kelas, Fase diposisikan rapat ke kanan) */}
         <div
@@ -749,7 +921,7 @@ export const ReportPtsView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 max-w-6xl mx-auto">
+    <div className="space-y-4 max-w-6xl mx-auto bg-white print:bg-white print:p-0 print:m-0 print:max-w-none">
       {/* Top Controls Bar 1: Student Navigation & Main Print Triggers */}
       <div className="no-print bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
         {/* Navigation & Student Selector */}
@@ -813,6 +985,22 @@ export const ReportPtsView: React.FC = () => {
           >
             <Layers className="w-4 h-4" />
             <span>Cetak Semua ({classStudents.length} Siswa)</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveLayoutTab('header_kop');
+              setShowLayoutEditor(true);
+            }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all ${
+              showLayoutEditor && activeLayoutTab === 'header_kop'
+                ? 'bg-blue-700 text-white border-blue-800 shadow-sm'
+                : 'bg-blue-50 text-blue-900 border-blue-200 hover:bg-blue-100'
+            }`}
+            title="Edit manual posisi logo kop raport (Kiri, Tengah, Kanan, Dual Logo) dan geser posisi"
+          >
+            <ImageIcon className="w-4 h-4 text-blue-600" />
+            <span>Edit Logo Kop Raport</span>
           </button>
 
           <button
@@ -910,11 +1098,11 @@ export const ReportPtsView: React.FC = () => {
           {/* Section 2: Quick Status & Layout Trigger */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-slate-600 font-medium">
-              Space TTD Wali Kelas: <b className="font-mono text-indigo-700">{homeroomSigSpace}px</b>
+              Logo Kop: <b className="font-mono text-blue-700 uppercase">{reportLogoPos} ({reportLogoSize}px)</b>
             </span>
             <span className="text-slate-300">•</span>
             <span className="text-xs text-slate-600 font-medium">
-              TTD Kepala Sekolah: <b className="font-mono text-indigo-700">{currentSigHeight}×{currentSigWidth}px</b>
+              Space TTD: <b className="font-mono text-indigo-700">{homeroomSigSpace}px</b>
             </span>
             <button
               onClick={() => setShowLayoutEditor(!showLayoutEditor)}
@@ -930,7 +1118,19 @@ export const ReportPtsView: React.FC = () => {
           <div className="pt-3 border-t border-slate-200 space-y-4 animate-in fade-in slide-in-from-top-1">
             {/* Tab navigation */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-100 p-1 rounded-xl">
-              <div className="flex items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1">
+                <button
+                  onClick={() => setActiveLayoutTab('header_kop')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    activeLayoutTab === 'header_kop'
+                      ? 'bg-white text-blue-900 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Logo & Kop Header Raport</span>
+                </button>
+
                 <button
                   onClick={() => setActiveLayoutTab('signatures')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -972,13 +1172,247 @@ export const ReportPtsView: React.FC = () => {
                 <button
                   onClick={handleResetLayout}
                   className="flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-red-700 bg-white hover:bg-red-50 border border-slate-200 hover:border-red-200 px-2.5 py-1 rounded-lg transition-colors"
-                  title="Kembalikan semua lebar kolom dan ukuran tanda tangan ke ukuran baku yang pas 1 lembar A4"
+                  title="Kembalikan semua lebar kolom, kop logo, dan ukuran tanda tangan ke ukuran baku yang pas 1 lembar A4"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Reset ke Standar Pas 1 Lembar</span>
                 </button>
               </div>
             </div>
+
+            {/* Tab: Logo & Kop Header Raport */}
+            {activeLayoutTab === 'header_kop' && (
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4 text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* 1. Posisi Logo Kop Raport */}
+                  <div className="bg-white p-3.5 rounded-xl border border-blue-100 shadow-2xs space-y-2.5">
+                    <div className="flex justify-between items-center font-bold text-slate-800">
+                      <span className="flex items-center gap-1.5 text-blue-900">
+                        <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
+                        Posisi Logo Kop Raport
+                      </span>
+                      <span className="font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 uppercase text-[10px] font-bold">
+                        {reportLogoPos}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-1.5 pt-1">
+                      {[
+                        { id: 'left', label: '👈 Kiri (Standar)', desc: 'Logo kiri, teks tengah' },
+                        { id: 'center', label: '👆 Tengah (Atas)', desc: 'Logo di atas teks' },
+                        { id: 'right', label: '👉 Kanan', desc: 'Logo di sebelah kanan' },
+                        { id: 'dual', label: '↔️ Dual Logo', desc: 'Logo kiri & kanan' },
+                      ].map((pos) => (
+                        <button
+                          key={pos.id}
+                          type="button"
+                          onClick={() => handleSetReportLogoPos(pos.id as any)}
+                          className={`p-2 rounded-xl text-left border transition-all ${
+                            reportLogoPos === pos.id
+                              ? 'bg-blue-50 border-blue-600 text-blue-950 font-bold shadow-2xs ring-1 ring-blue-500'
+                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="font-bold text-xs">{pos.label}</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">{pos.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSetReportLogoPos('hidden')}
+                      className={`w-full py-1.5 px-2 rounded-lg text-center border text-[11px] font-semibold transition-all ${
+                        reportLogoPos === 'hidden'
+                          ? 'bg-red-50 border-red-500 text-red-800 font-bold'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      ✕ Tanpa Logo (Hanya Teks Kop)
+                    </button>
+                  </div>
+
+                  {/* 2. Ukuran Tinggi Logo Kop */}
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-2.5">
+                    <div className="flex justify-between items-center font-bold text-slate-800">
+                      <span className="flex items-center gap-1.5 text-blue-900">
+                        <Sliders className="w-3.5 h-3.5 text-blue-600" />
+                        Ukuran Tinggi Logo Kop
+                      </span>
+                      <span className="font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-bold">
+                        {reportLogoSize} px
+                      </span>
+                    </div>
+
+                    <input
+                      type="range"
+                      min="32"
+                      max="80"
+                      step="2"
+                      value={reportLogoSize}
+                      onChange={(e) => handleSetReportLogoSize(Number(e.target.value))}
+                      className="w-full accent-blue-600 cursor-pointer"
+                    />
+
+                    <div className="flex items-center gap-1.5 pt-1">
+                      {[
+                        { label: 'Kecil (40px)', val: 40 },
+                        { label: 'Standar (52px)', val: 52 },
+                        { label: 'Besar (64px)', val: 64 },
+                        { label: 'Ekstra (72px)', val: 72 },
+                      ].map((preset) => (
+                        <button
+                          key={preset.val}
+                          type="button"
+                          onClick={() => handleSetReportLogoSize(preset.val)}
+                          className={`flex-1 py-1 px-1 text-[11px] font-medium rounded-lg border text-center transition-all ${
+                            reportLogoSize === preset.val
+                              ? 'bg-blue-600 text-white border-blue-700 font-bold'
+                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-tight">
+                      * Menentukan skala tinggi logo sekolah pada kop laporan hasil belajar cetak.
+                    </p>
+                  </div>
+
+                  {/* 3. Geser Posisi Manual (Offset X & Offset Y) */}
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-2.5">
+                    <div className="flex justify-between items-center font-bold text-slate-800">
+                      <span className="flex items-center gap-1.5 text-blue-900">
+                        <Move className="w-3.5 h-3.5 text-blue-600" />
+                        Geser Posisi Manual (X / Y)
+                      </span>
+                      <span className="font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-[11px]">
+                        X:{reportLogoOffsetX}px | Y:{reportLogoOffsetY}px
+                      </span>
+                    </div>
+
+                    {/* Offset X */}
+                    <div>
+                      <div className="flex justify-between text-[11px] text-slate-600 mb-0.5 font-medium">
+                        <span>Geser Horizontal (X):</span>
+                        <span className="font-mono font-bold text-blue-800">{reportLogoOffsetX} px</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="range"
+                          min="-40"
+                          max="40"
+                          step="2"
+                          value={reportLogoOffsetX}
+                          onChange={(e) => handleSetReportLogoOffsetX(Number(e.target.value))}
+                          className="w-full accent-blue-600 cursor-pointer"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSetReportLogoOffsetX(0)}
+                          className="text-[10px] px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 font-mono"
+                          title="Reset ke 0px"
+                        >
+                          0
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Offset Y */}
+                    <div>
+                      <div className="flex justify-between text-[11px] text-slate-600 mb-0.5 font-medium">
+                        <span>Geser Vertikal (Y):</span>
+                        <span className="font-mono font-bold text-blue-800">{reportLogoOffsetY} px</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="range"
+                          min="-15"
+                          max="20"
+                          step="1"
+                          value={reportLogoOffsetY}
+                          onChange={(e) => handleSetReportLogoOffsetY(Number(e.target.value))}
+                          className="w-full accent-blue-600 cursor-pointer"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSetReportLogoOffsetY(0)}
+                          className="text-[10px] px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 font-mono"
+                          title="Reset ke 0px"
+                        >
+                          0
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Garis Pembatas Kop */}
+                    <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                      <span className="font-semibold text-slate-700">Garis Bawah Kop:</span>
+                      <div className="flex items-center gap-1">
+                        {[
+                          { label: '0px', val: 0 },
+                          { label: '1px', val: 1 },
+                          { label: '2px (Baku)', val: 2 },
+                          { label: '3px', val: 3 },
+                        ].map((bw) => (
+                          <button
+                            key={bw.val}
+                            type="button"
+                            onClick={() => handleSetReportBorderWidth(bw.val)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                              reportBorderWidth === bw.val
+                                ? 'bg-blue-600 text-white border-blue-700'
+                                : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            {bw.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Extra settings for Dual Logo mode or Custom Subtitle */}
+                {reportLogoPos === 'dual' && (
+                  <div className="bg-white p-3.5 rounded-xl border border-emerald-200 shadow-2xs space-y-2">
+                    <div className="font-bold text-emerald-900 text-xs flex items-center gap-1.5">
+                      <span>Pengaturan Logo Sekunder (Kanan untuk Mode Dual Logo)</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                          URL Logo Sekunder (Kemdikbud / Yayasan):
+                        </label>
+                        <input
+                          type="text"
+                          value={reportSecLogoUrl}
+                          onChange={(e) => handleSetReportSecLogoUrl(e.target.value)}
+                          placeholder="https://..."
+                          className="w-full text-xs px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-[11px] font-medium text-slate-600 mb-1">
+                          <span>Ukuran Tinggi Logo Sekunder:</span>
+                          <span className="font-mono font-bold text-emerald-800">{reportSecLogoSize} px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="32"
+                          max="70"
+                          step="2"
+                          value={reportSecLogoSize}
+                          onChange={(e) => handleSetReportSecLogoSize(Number(e.target.value))}
+                          className="w-full accent-emerald-600 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Tab 1: Space & Posisi Tanda Tangan */}
             {activeLayoutTab === 'signatures' && (
@@ -1371,7 +1805,7 @@ export const ReportPtsView: React.FC = () => {
       </div>
 
       {/* Render Document(s) */}
-      <div className="print-area">
+      <div className="print-area bg-white print:bg-white print:p-0 print:m-0">
         {printAllStudentsMode ? (
           <div>{classStudents.map((st) => renderSingleReport(st, true))}</div>
         ) : (

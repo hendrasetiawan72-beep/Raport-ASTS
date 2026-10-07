@@ -58,13 +58,13 @@ const MainContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F5F0] flex flex-col text-[#3D332A] selection:bg-[#D5E3D9] selection:text-[#23352A]">
+    <div className="min-h-screen bg-white flex flex-col text-[#2C241E] selection:bg-[#E8EFEA] selection:text-[#1E2D24] print:bg-white print:p-0 print:m-0">
       <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-      <div className="flex-1 flex w-full">
+      <div className="flex-1 flex w-full print:block print:p-0">
         <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto bg-white print:p-0 print:m-0 print:overflow-visible">
           {renderActiveView()}
         </main>
       </div>
