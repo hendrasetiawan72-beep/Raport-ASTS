@@ -16,6 +16,7 @@ import {
   Check,
   Sparkles,
   ExternalLink,
+  CalendarDays,
 } from 'lucide-react';
 import { initialSchoolProfile } from '../../data/initialData';
 import { PhotoUploader } from '../common/PhotoUploader';
@@ -27,13 +28,17 @@ export const SchoolProfileView: React.FC = () => {
     updateSchoolProfile,
     classes,
     selectedClassId,
+    currentPeriod,
     dbStatus,
     dbStats,
     forceSaveToDatabase,
     showToast,
   } = useApp();
 
-  const [formData, setFormData] = useState({ ...schoolProfile });
+  const [formData, setFormData] = useState({
+    ...schoolProfile,
+    reportDate: schoolProfile.reportDate || currentPeriod?.reportDate || '8 Oktober 2026',
+  });
   const [isSaved, setIsSaved] = useState(false);
   const [headerModalOpen, setHeaderModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'sekolah' | 'kepsek' | 'walikelas' | 'layout'>('sekolah');
@@ -226,8 +231,47 @@ export const SchoolProfileView: React.FC = () => {
                     placeholder="Bawang"
                   />
                   <span className="text-[11px] text-[#8C8071] mt-0.5 block">
-                    Digunakan pada titimangsa rapor: "{formData.city || 'Bawang'}, 8 Oktober 2026"
+                    Nama kota/kecamatan pada titimangsa rapor
                   </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#4A4036] mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-[#2C241E]">
+                      <CalendarDays className="w-3.5 h-3.5 text-[#5A7365]" />
+                      <span>Titimangsa Tanggal Raport</span>
+                      <span className="text-red-500">*</span>
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-[#E8EFEA] text-[#344E3F] rounded-md">
+                      Pusat Titimangsa
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.reportDate || ''}
+                    onChange={(e) => setFormData({ ...formData, reportDate: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 bg-[#F9F7F2] border-2 border-[#5A7365]/40 focus:border-[#5A7365] rounded-xl focus:ring-2 focus:ring-[#7E9685] outline-none font-semibold text-[#2C241E]"
+                    placeholder="8 Oktober 2026"
+                  />
+                  <span className="text-[11px] text-[#5A7365] font-semibold mt-0.5 block">
+                    Satu-satunya kolom resmi untuk mengatur titimangsa tanggal rapor yang dicetak.
+                  </span>
+                </div>
+
+                {/* Live Preview Box Titimangsa Raport */}
+                <div className="md:col-span-2 p-3.5 bg-[#F4EFE6] border border-[#D8CEBD] rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="space-y-0.5">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-[#6B6053]">
+                      Pratinjau Format Titimangsa Raport:
+                    </div>
+                    <div className="font-serif font-bold text-sm text-[#2C241E]">
+                      "{formData.city || 'Bawang'}, {formData.reportDate || '8 Oktober 2026'}"
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-[#7A6E5E] max-w-sm leading-tight bg-white/70 p-2 rounded-xl border border-[#E5DFD5]">
+                    Format di atas tampil tepat di atas tanda tangan Wali Kelas pada lembar raport siap cetak dan sinkron otomatis dengan seluruh dokumen.
+                  </div>
                 </div>
 
                 <div>

@@ -839,7 +839,7 @@ export const ReportPtsView: React.FC = () => {
               className="text-left ml-auto w-56 sm:w-60"
             >
               <div>
-                {schoolProfile.city}, {currentPeriod?.reportDate}
+                {schoolProfile.city}, {schoolProfile.reportDate || currentPeriod?.reportDate || '8 Oktober 2026'}
               </div>
               <div className="mt-0.5 font-medium">Wali Kelas</div>
               <div

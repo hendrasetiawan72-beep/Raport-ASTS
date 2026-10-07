@@ -47,6 +47,9 @@ export interface SchoolProfile {
   homeroomSignatureHeight?: number; // in pixels (e.g., 65)
   homeroomSignatureWidth?: number; // in pixels (e.g., 160)
   selectedHomeroomClassId?: string;
+  // Pengaturan Titimangsa Rapor Terpusat pada Data Sekolah
+  reportDate?: string; // Tanggal titimangsa rapor (e.g. "8 Oktober 2026")
+  reportTitimangsa?: string; // Full formatted titimangsa jika diinginkan khusus
   // Pengaturan Layout Header Manual
   headerLayout?: HeaderLayoutSettings;
 }

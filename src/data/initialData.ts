@@ -40,6 +40,7 @@ export const initialSchoolProfile: SchoolProfile = {
   homeroomSignatureHeight: 65,
   homeroomSignatureWidth: 170,
   selectedHomeroomClassId: 'c-1',
+  reportDate: '8 Oktober 2026',
   headerLayout: {
     position: 'left',
     logoHeight: 42,

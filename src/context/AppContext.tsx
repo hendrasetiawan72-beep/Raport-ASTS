@@ -464,6 +464,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
     }
 
+    // If reportDate is updated in School Profile, sync it immediately to the selected/current period
+    if (patch.reportDate !== undefined) {
+      setPeriods((prev) =>
+        prev.map((p) => (p.id === selectedPeriodId ? { ...p, reportDate: patch.reportDate! } : p))
+      );
+    }
+
     if (
       patch.headmasterSignatureHeight !== undefined ||
       patch.headmasterSignatureWidth !== undefined ||
