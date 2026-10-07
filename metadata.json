@@ -1,0 +1,6 @@
+{
+  "name": "Raport ASTS Modern",
+  "description": "Aplikasi Pengelolaan Raport ASTS Kurikulum Merdeka dengan sinkronisasi leger nilai, absensi, ekstrakurikuler, dan cetak raport.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
