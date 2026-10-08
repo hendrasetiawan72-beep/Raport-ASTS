@@ -371,7 +371,7 @@ export const RankingView: React.FC = () => {
 
             <div className="text-right">
               <div>
-                {schoolProfile.city}, {currentPeriod?.reportDate}
+                {schoolProfile.city}, {schoolProfile.reportDate || currentPeriod?.reportDate || '8 Oktober 2026'}
               </div>
               <div className="mt-0.5">Wali Kelas {selectedClass?.name}</div>
               <div className="h-16 flex items-end justify-end">

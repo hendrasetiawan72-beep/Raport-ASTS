@@ -765,7 +765,7 @@ export const GradeLedgerView: React.FC = () => {
           </div>
 
           <div className="text-right">
-            <span>Bawang, {currentPeriod?.reportDate} • Wali Kelas: </span>
+            <span>{schoolProfile.city}, {schoolProfile.reportDate || '8 Oktober 2026'} • Wali Kelas: </span>
             <span className="font-bold text-[#2C241E]">
               {selectedClass?.homeroomTeacher || schoolProfile.homeroomTeacherName}
             </span>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   Building2,
@@ -37,8 +37,16 @@ export const SchoolProfileView: React.FC = () => {
 
   const [formData, setFormData] = useState({
     ...schoolProfile,
-    reportDate: schoolProfile.reportDate || currentPeriod?.reportDate || '8 Oktober 2026',
+    reportDate: schoolProfile.reportDate || '8 Oktober 2026',
   });
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      ...schoolProfile,
+      reportDate: schoolProfile.reportDate || prev.reportDate || '8 Oktober 2026',
+    }));
+  }, [schoolProfile]);
   const [isSaved, setIsSaved] = useState(false);
   const [headerModalOpen, setHeaderModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'sekolah' | 'kepsek' | 'walikelas' | 'layout'>('sekolah');

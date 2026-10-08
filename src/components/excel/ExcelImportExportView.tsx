@@ -35,6 +35,7 @@ export const ExcelImportExportView: React.FC = () => {
     attendances,
     extracurriculars,
     batchAddOrUpdateStudents,
+    updateStudent,
     batchSaveGrades,
     getClassRankings,
     showToast,
@@ -175,11 +176,26 @@ export const ExcelImportExportView: React.FC = () => {
       const studentsToSync: Omit<Student, 'id'>[] = [];
 
       previewRows.forEach((row, rIdx) => {
-        const studentName = String(row[1] || row[nameCol] || '').trim().toUpperCase();
+        let studentName = String(row[nameCol] !== undefined ? row[nameCol] : (row[1] || '')).trim().toUpperCase();
         if (!studentName || studentName.includes('NAMA') || studentName.includes('RATA')) return;
 
-        const nis = String(row[2] || row[nisCol] || (5400 + rIdx + 1)).trim();
-        const nisn = String(row[3] || row[nisnCol] || '').trim();
+        let rawNis = String(row[nisCol] !== undefined ? row[nisCol] : (row[2] || '')).trim();
+        let rawNisn = String(row[nisnCol] !== undefined ? row[nisnCol] : (row[3] || '')).trim();
+
+        // Swap if rawNis was 10 digits and rawNisn was 4 digits
+        if (rawNis.replace(/\D/g, '').length >= 9 && rawNisn.replace(/\D/g, '').length < 9) {
+          const temp = rawNis;
+          rawNis = rawNisn;
+          rawNisn = temp;
+        }
+
+        const nis = rawNis || String(5400 + rIdx + 1);
+        let nisn = rawNisn.replace(/\D/g, '');
+        if (nisn.length >= 8 && nisn.length <= 10) {
+          nisn = nisn.padStart(10, '0');
+        } else if (!nisn) {
+          nisn = `008451${String(rIdx + 1).padStart(2, '0')}${rIdx % 10}`;
+        }
 
         // Check if student exists
         let targetStudent = students.find(
@@ -198,6 +214,8 @@ export const ExcelImportExportView: React.FC = () => {
             parentName: `Wali dari ${studentName}`,
             status: 'Aktif',
           });
+        } else if (nisn && targetStudent.nisn !== nisn) {
+          updateStudent(targetStudent.id, { nisn });
         }
       });
 

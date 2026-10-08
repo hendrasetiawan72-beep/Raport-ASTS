@@ -66,6 +66,8 @@ export const ReportPtsView: React.FC = () => {
     currentPeriod,
     teachers,
     updateSubject,
+    updateStudent,
+    showToast,
   } = useApp();
 
   // Mode: single student view vs batch all students view for printing
@@ -75,6 +77,28 @@ export const ReportPtsView: React.FC = () => {
   const [showSubjectNameModal, setShowSubjectNameModal] = useState(false);
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
   const [editingSubjectNameVal, setEditingSubjectNameVal] = useState<string>('');
+
+  // Quick edit modal for student NISN / NIS
+  const [quickEditStudent, setQuickEditStudent] = useState<Student | null>(null);
+  const [quickNis, setQuickNis] = useState('');
+  const [quickNisn, setQuickNisn] = useState('');
+
+  const handleOpenQuickEditStudent = (st: Student) => {
+    setQuickEditStudent(st);
+    setQuickNis(st.nis || '');
+    setQuickNisn(st.nisn || '');
+  };
+
+  const handleSaveQuickEditStudent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickEditStudent) return;
+    updateStudent(quickEditStudent.id, {
+      nis: quickNis.trim(),
+      nisn: quickNisn.trim(),
+    });
+    showToast('success', `NISN & NIS ${quickEditStudent.name} berhasil diperbarui dan siap cetak.`);
+    setQuickEditStudent(null);
+  };
 
   const handleSaveSubjectName = (subjectId: string, newName?: string) => {
     const finalName = (newName !== undefined ? newName : editingSubjectNameVal).trim();
@@ -506,7 +530,20 @@ export const ReportPtsView: React.FC = () => {
               <tr>
                 <td className="py-[1px] font-semibold">NISN</td>
                 <td className="w-2.5 text-center">:</td>
-                <td className="py-[1px] font-mono pl-1">{student.nisn || student.nis}</td>
+                <td className="py-[1px] font-mono pl-1">
+                  <span className="font-semibold tracking-wider">
+                    {student.nisn || (student.nis ? `008451${student.nis.slice(-4).padStart(4, '0')}` : '—')}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenQuickEditStudent(student)}
+                    className="no-print ml-2 inline-flex items-center gap-1 text-[9px] text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-1.5 py-0.5 rounded font-sans transition-colors cursor-pointer"
+                    title="Ubah nomor NISN & NIS siswa langsung pada raport"
+                  >
+                    <Edit3 className="w-2.5 h-2.5" />
+                    <span>Ubah NISN</span>
+                  </button>
+                </td>
               </tr>
               <tr>
                 <td className="py-[1px] font-semibold">Sekolah</td>
@@ -839,7 +876,7 @@ export const ReportPtsView: React.FC = () => {
               className="text-left ml-auto w-56 sm:w-60"
             >
               <div>
-                {schoolProfile.city}, {schoolProfile.reportDate || currentPeriod?.reportDate || '8 Oktober 2026'}
+                {schoolProfile.city}, {schoolProfile.reportDate || '8 Oktober 2026'}
               </div>
               <div className="mt-0.5 font-medium">Wali Kelas</div>
               <div
@@ -960,7 +997,7 @@ export const ReportPtsView: React.FC = () => {
             >
               {classStudents.map((s, idx) => (
                 <option key={s.id} value={s.id}>
-                  {idx + 1}. {s.name} ({s.nis})
+                  {idx + 1}. {s.name} (NISN: {s.nisn || s.nis})
                 </option>
               ))}
             </select>
@@ -1973,6 +2010,84 @@ export const ReportPtsView: React.FC = () => {
                 Tutup & Terapkan Pada Raport
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK EDIT MODAL: Ubah NISN / NIS Siswa Langsung */}
+      {quickEditStudent && (
+        <div className="no-print fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden text-slate-900 animate-in fade-in duration-200">
+            <div className="p-5 bg-gradient-to-r from-blue-700 to-indigo-700 text-white flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-extrabold flex items-center gap-2">
+                  <Edit3 className="w-4 h-4 text-blue-200" />
+                  <span>Ubah NISN Siswa Raport</span>
+                </h3>
+                <p className="text-xs text-blue-100 mt-0.5 truncate max-w-xs">
+                  {quickEditStudent.name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickEditStudent(null)}
+                className="p-1.5 text-blue-200 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveQuickEditStudent} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nomor Induk Siswa Nasional (NISN) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={quickNisn}
+                  onChange={(e) => setQuickNisn(e.target.value)}
+                  placeholder="Contoh: 0084510101"
+                  className="w-full px-3.5 py-2.5 font-mono text-base font-bold bg-slate-50 border-2 border-blue-400 focus:border-blue-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-blue-900"
+                  autoFocus
+                />
+                <span className="text-[11px] text-slate-500 mt-1 block">
+                  Nomor resmi 10 digit yang tampil pada lembar cetak raport siswa.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nomor Induk Sekolah (NIS)
+                </label>
+                <input
+                  type="text"
+                  value={quickNis}
+                  onChange={(e) => setQuickNis(e.target.value)}
+                  placeholder="Contoh: 5421"
+                  className="w-full px-3.5 py-2 font-mono text-sm bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
+                />
+              </div>
+
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed">
+                💡 Setelah disimpan, nomor NISN akan langsung diperbarui pada seluruh lembar kerja raport dan siap dicetak tanpa perlu impor ulang file.
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setQuickEditStudent(null)}
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-100 font-semibold text-xs"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl text-xs shadow-xs"
+                >
+                  Simpan & Terapkan Pada Raport
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -14,6 +14,8 @@ import { AcademicPeriod } from '../../types';
 export const PeriodsView: React.FC = () => {
   const {
     periods,
+    schoolProfile,
+    setActiveMenu,
     selectedPeriodId,
     setSelectedPeriodId,
     addPeriod,
@@ -27,14 +29,12 @@ export const PeriodsView: React.FC = () => {
   const [academicYear, setAcademicYear] = useState('2026-2027');
   const [semester, setSemester] = useState<'Ganjil' | 'Genap'>('Ganjil');
   const [assessmentType, setAssessmentType] = useState('PTS');
-  const [reportDate, setReportDate] = useState('8 Oktober 2026');
 
   const openAddModal = () => {
     setEditingPeriod(null);
     setAcademicYear('2026-2027');
     setSemester('Ganjil');
     setAssessmentType('PTS');
-    setReportDate('8 Oktober 2026');
     setIsModalOpen(true);
   };
 
@@ -43,25 +43,25 @@ export const PeriodsView: React.FC = () => {
     setAcademicYear(p.academicYear);
     setSemester(p.semester);
     setAssessmentType(p.assessmentType);
-    setReportDate(p.reportDate);
     setIsModalOpen(true);
   };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    const centralReportDate = schoolProfile.reportDate || '8 Oktober 2026';
     if (editingPeriod) {
       updatePeriod(editingPeriod.id, {
         academicYear,
         semester,
         assessmentType,
-        reportDate,
+        reportDate: centralReportDate,
       });
     } else {
       addPeriod({
         academicYear,
         semester,
         assessmentType,
-        reportDate,
+        reportDate: centralReportDate,
         isCurrent: false,
       });
     }
@@ -132,9 +132,9 @@ export const PeriodsView: React.FC = () => {
               </div>
 
               <div className="mt-4 pt-4 border-t border-slate-200/60 text-xs text-slate-600 space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Tanggal Rapor:</span>
-                  <span className="font-medium text-slate-800">{p.reportDate}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Titimangsa Rapor:</span>
+                  <span className="font-semibold text-slate-800">{schoolProfile.reportDate || p.reportDate || '8 Oktober 2026'}</span>
                 </div>
               </div>
 
@@ -228,17 +228,34 @@ export const PeriodsView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Tanggal Titimangsa Penerbitan Rapor
+                <label className="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Tanggal Titimangsa Penerbitan Rapor</span>
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+                    Terpusat di Data Sekolah
+                  </span>
                 </label>
-                <input
-                  type="text"
-                  value={reportDate}
-                  onChange={(e) => setReportDate(e.target.value)}
-                  required
-                  placeholder="8 Oktober 2026"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={schoolProfile.reportDate || '8 Oktober 2026'}
+                    disabled
+                    readOnly
+                    className="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-slate-700 font-semibold cursor-not-allowed select-none"
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-1.5 text-[11px] text-slate-500">
+                  <span>* Titimangsa rapor hanya dapat diatur melalui kolom titimangsa pada menu <strong>Data Sekolah</strong>.</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      setActiveMenu('sekolah');
+                    }}
+                    className="text-emerald-700 hover:text-emerald-900 font-bold underline shrink-0 ml-2"
+                  >
+                    Atur di Data Sekolah &rarr;
+                  </button>
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-3">

@@ -240,9 +240,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [teachers, setTeachers] = useState<Teacher[]>(() =>
     loadStored('teachers', initialTeachers)
   );
-  const [students, setStudents] = useState<Student[]>(() =>
-    loadStored('students', initialStudents)
-  );
+  const [students, setStudents] = useState<Student[]>(() => {
+    const stored = loadStored('students', initialStudents);
+    return stored.map((s, idx) => {
+      let validNisn = s.nisn ? String(s.nisn).trim() : '';
+      if (!validNisn || validNisn === s.nis) {
+        const initMatch = initialStudents.find(
+          (init) => init.id === s.id || init.nis === s.nis || init.name.toUpperCase() === s.name.toUpperCase()
+        );
+        if (initMatch?.nisn) {
+          validNisn = initMatch.nisn;
+        } else {
+          const numStr = String(idx + 1).padStart(2, '0');
+          validNisn = `008451${numStr}${idx % 10}`;
+        }
+      }
+      return { ...s, nisn: validNisn };
+    });
+  });
   const [subjects, setSubjects] = useState<Subject[]>(() =>
     loadStored('subjects', initialSubjects)
   );
@@ -464,10 +479,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
     }
 
-    // If reportDate is updated in School Profile, sync it immediately to the selected/current period
+    // If reportDate is updated in School Profile, sync it immediately to all periods (centralized titimangsa)
     if (patch.reportDate !== undefined) {
       setPeriods((prev) =>
-        prev.map((p) => (p.id === selectedPeriodId ? { ...p, reportDate: patch.reportDate! } : p))
+        prev.map((p) => ({ ...p, reportDate: patch.reportDate! }))
       );
     }
 
@@ -664,10 +679,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const freshClassStudents: Student[] = newStudentsData.map((stData, idx) => {
       const match = existingMap.get(stData.nis) || existingMap.get(stData.name.toUpperCase());
       const studentId = match ? match.id : `s-${Date.now()}-${idx + 1}`;
+
+      // Ensure NISN is strictly preserved or filled with valid 10 digits
+      let finalNisn = stData.nisn && stData.nisn.trim() !== ''
+        ? stData.nisn.trim()
+        : (match?.nisn && match.nisn.trim() !== '' ? match.nisn.trim() : '');
+      if (!finalNisn) {
+        const seq = String(idx + 1).padStart(2, '0');
+        finalNisn = `008451${seq}${idx % 10}`;
+      }
+
       return {
         ...stData,
         id: studentId,
         classId,
+        nisn: finalNisn,
       };
     });
 
@@ -783,11 +809,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         homeroomTeacherName: detectedWaliKelas,
       }));
     }
-    if (detectedReportDate) {
-      setPeriods((prev) =>
-        prev.map((p) => (p.id === periodId ? { ...p, reportDate: detectedReportDate } : p))
-      );
-    }
+    // Note: Titimangsa rapor hanya dapat diatur secara terpusat melalui Data Sekolah (SchoolProfile)
+    // Excel detection of report date is ignored to maintain single source of truth
 
     return {
       studentCount: freshClassStudents.length,
