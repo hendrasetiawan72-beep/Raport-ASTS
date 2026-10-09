@@ -670,18 +670,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Existing students in this class for mapping/ID preservation
     const existingInThisClass = students.filter((s) => s.classId === classId);
     const existingMap = new Map<string, Student>();
+    const existingNameNormMap = new Map<string, Student>();
+
+    const normalizeName = (name: string) =>
+      (name || '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
     existingInThisClass.forEach((s) => {
-      existingMap.set(s.nis, s);
       existingMap.set(s.name.toUpperCase(), s);
+      existingNameNormMap.set(normalizeName(s.name), s);
+      if (s.nisn) existingMap.set(s.nisn, s);
     });
 
-    // Fresh student list for this class: exactly those in the new Excel file!
+    // Fresh student list for this class: exactly those in the uploaded Excel file!
     const freshClassStudents: Student[] = newStudentsData.map((stData, idx) => {
-      const match = existingMap.get(stData.nis) || existingMap.get(stData.name.toUpperCase());
+      // Match existing student by exact Name, normalized Name, or authentic NISN
+      const match =
+        existingMap.get(stData.name.toUpperCase()) ||
+        existingNameNormMap.get(normalizeName(stData.name)) ||
+        (stData.nisn && stData.nisn.length >= 8 ? existingMap.get(stData.nisn) : undefined);
+
       const studentId = match ? match.id : `s-${Date.now()}-${idx + 1}`;
 
-      // Ensure NISN is strictly preserved or filled with valid 10 digits
-      let finalNisn = stData.nisn && stData.nisn.trim() !== ''
+      // Authentic NISN from uploaded Excel file or preserved match
+      let finalNisn = (stData.nisn && stData.nisn.trim() !== '')
         ? stData.nisn.trim()
         : (match?.nisn && match.nisn.trim() !== '' ? match.nisn.trim() : '');
       if (!finalNisn) {
@@ -689,10 +704,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         finalNisn = `008451${seq}${idx % 10}`;
       }
 
+      // NIS: use provided or match or default
+      const finalNis = (stData.nis && stData.nis.trim() !== '')
+        ? stData.nis.trim()
+        : (match?.nis && match.nis.trim() !== '' ? match.nis.trim() : String(5420 + idx + 1));
+
       return {
         ...stData,
         id: studentId,
         classId,
+        nis: finalNis,
         nisn: finalNisn,
       };
     });
@@ -705,11 +726,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const removedStudents = existingInThisClass.filter((s) => !freshStudentIds.has(s.id));
     const removedStudentIds = new Set(removedStudents.map((s) => s.id));
 
-    // Lookup maps for fresh students
+    // Comprehensive lookup maps for fresh students (ID, Name, Normalized Name, NISN)
     const studentIdLookup = new Map<string, string>();
     freshClassStudents.forEach((st) => {
-      studentIdLookup.set(st.nis, st.id);
+      studentIdLookup.set(st.id, st.id);
       studentIdLookup.set(st.name.toUpperCase(), st.id);
+      studentIdLookup.set(normalizeName(st.name), st.id);
+      if (st.nisn) studentIdLookup.set(st.nisn, st.id);
+      if (st.nis) studentIdLookup.set(st.nis, st.id);
     });
 
     // All previous or target students of this class
@@ -727,9 +751,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const freshGrades: GradeRecord[] = [];
     newGradesData.forEach((item) => {
+      // Resolve student primarily by Name (most reliable identifier across Excel sheets)
       const resolvedId =
-        studentIdLookup.get(item.studentNis) ||
-        studentIdLookup.get(item.studentName.toUpperCase());
+        studentIdLookup.get(item.studentName.toUpperCase()) ||
+        studentIdLookup.get(normalizeName(item.studentName)) ||
+        ((item as any).studentNisn ? studentIdLookup.get((item as any).studentNisn) : undefined) ||
+        (item.studentNis ? studentIdLookup.get(item.studentNis) : undefined);
+
       if (resolvedId) {
         freshGrades.push({
           id: `${resolvedId}_${item.subjectId}_${periodId}`,
@@ -754,8 +782,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const freshAttendances: AttendanceRecord[] = freshClassStudents.map((st) => {
       const parsedAtt =
-        newAttendanceData.find((a) => a.studentNis === st.nis) ||
-        newAttendanceData.find((a) => a.studentName.toUpperCase() === st.name.toUpperCase());
+        newAttendanceData.find((a) => a.studentName.toUpperCase() === st.name.toUpperCase()) ||
+        newAttendanceData.find((a) => normalizeName(a.studentName) === normalizeName(st.name)) ||
+        newAttendanceData.find((a) => a.studentNis === st.nis);
 
       return {
         id: `att-${st.id}-${periodId}`,
@@ -778,8 +807,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const freshExtracurriculars: ExtracurricularRecord[] = [];
     newExtracurricularData.forEach((extraItem, idx) => {
       const resolvedId =
-        studentIdLookup.get(extraItem.studentNis) ||
-        studentIdLookup.get(extraItem.studentName.toUpperCase());
+        studentIdLookup.get(extraItem.studentName.toUpperCase()) ||
+        studentIdLookup.get(normalizeName(extraItem.studentName)) ||
+        studentIdLookup.get(extraItem.studentNis);
       if (resolvedId && extraItem.name && extraItem.name.trim().length > 0) {
         freshExtracurriculars.push({
           id: `extra-${resolvedId}-${periodId}-${idx}`,

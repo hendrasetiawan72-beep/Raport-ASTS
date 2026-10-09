@@ -404,6 +404,21 @@ export function parseLegerExcel(
   targetPeriodId: string,
   existingSubjects: Subject[]
 ): LegerParseResult {
+  // Helper to filter summary, footer, or signature rows
+  const isSummaryRow = (text: string): boolean => {
+    const clean = text.trim().toLowerCase();
+    if (!clean) return true;
+    // Lewati baris yang diawali "rata-rata" (regex /^rata[\s-]*rata/)
+    if (/^rata[\s-]*rata/i.test(clean)) return true;
+    // Diawali kata "total"
+    if (/^total/i.test(clean)) return true;
+    // Mengandung kata "mengetahui"
+    if (clean.includes('mengetahui')) return true;
+    // Baris tanda tangan NIP
+    if (clean.startsWith('nip')) return true;
+    return false;
+  };
+
   try {
     const wb = XLSX.read(fileData, { type: 'array' });
 
@@ -444,8 +459,8 @@ export function parseLegerExcel(
           if (txt.includes('nama')) nameCol = c;
           if (txt.includes('nis') && !txt.includes('nisn')) nisCol = c;
           if (txt === 's' || txt.includes('sakit')) sCol = c;
-          if (txt === 'i' || txt.includes('izin')) iCol = c;
-          if (txt === 'a' || txt.includes('alpa') || txt.includes('tanpa')) aCol = c;
+          if (txt === 'i' || txt.includes('izin') || txt.includes('ijin')) iCol = c;
+          if (txt === 'a' || txt.includes('alpa') || txt.includes('alpha') || txt.includes('tanpa')) aCol = c;
         });
         if (sCol !== -1 && iCol !== -1) break;
       }
@@ -454,7 +469,7 @@ export function parseLegerExcel(
         const row = attRows[r];
         const rawName = String(row[nameCol] || '').trim().toUpperCase();
         const rawNis = String(row[nisCol] || '').trim();
-        if (rawName && !rawName.includes('TOTAL') && !rawName.includes('RATA')) {
+        if (rawName && !isSummaryRow(rawName)) {
           const sick = sCol !== -1 && !isNaN(parseInt(row[sCol])) ? parseInt(row[sCol]) : 0;
           const permitted = iCol !== -1 && !isNaN(parseInt(row[iCol])) ? parseInt(row[iCol]) : 0;
           const unexcused = aCol !== -1 && !isNaN(parseInt(row[aCol])) ? parseInt(row[aCol]) : 0;
@@ -468,6 +483,7 @@ export function parseLegerExcel(
     const extraSheetName = wb.SheetNames.find(
       (s) =>
         s.toLowerCase().includes('ekstra') ||
+        s.toLowerCase().includes('ektra') ||
         s.toLowerCase().includes('ekskul') ||
         s.toLowerCase().includes('ekstrakurikuler') ||
         s.toLowerCase().includes('kegiatan')
@@ -490,7 +506,12 @@ export function parseLegerExcel(
           const txt = String(cell).toLowerCase().trim();
           if (txt.includes('nama peserta') || txt === 'nama') nameCol = c;
           if (txt.includes('nis') && !txt.includes('nisn')) nisCol = c;
-          if (txt.includes('kegiatan') || txt.includes('ekstra')) {
+          if (
+            txt.includes('kegiatan') ||
+            txt.includes('ekstra') ||
+            txt.includes('ektra') ||
+            txt.includes('ekskul')
+          ) {
             if (ex1Col === -1) ex1Col = c;
           }
           if (txt.includes('predikat') || txt.includes('nilai')) {
@@ -506,7 +527,7 @@ export function parseLegerExcel(
         const row = extraRows[r];
         const rawName = String(row[nameCol] || '').trim().toUpperCase();
         const rawNis = String(row[nisCol] || '').trim();
-        if (rawName && !rawName.includes('TOTAL') && !rawName.includes('RATA')) {
+        if (rawName && !isSummaryRow(rawName)) {
           const extraName = ex1Col !== -1 ? String(row[ex1Col] || '').trim() : '';
           const extraPred = pred1Col !== -1 ? String(row[pred1Col] || '').trim() : 'Baik';
           const extraDesc = desc1Col !== -1 ? String(row[desc1Col] || '').trim() : '';
@@ -592,10 +613,13 @@ export function parseLegerExcel(
       ) {
         subColHeaderRowIdx = r;
       }
+      const firstCellStr = String(rows[r][0] || '').trim();
+      const firstCellNum = parseInt(firstCellStr);
       if (
-        r > 3 &&
-        typeof rows[r][0] === 'number' &&
-        String(rows[r][1]).trim().length > 3 &&
+        r >= 3 &&
+        (firstCellNum === 1 || rows[r][0] === 1) &&
+        String(rows[r][1] || '').trim().length >= 3 &&
+        !isSummaryRow(String(rows[r][1] || '')) &&
         studentDataStartRowIdx === -1
       ) {
         studentDataStartRowIdx = r;
@@ -605,51 +629,126 @@ export function parseLegerExcel(
     if (subColHeaderRowIdx === -1 && subjectHeaderRowIdx !== -1) {
       subColHeaderRowIdx = subjectHeaderRowIdx + 1;
     }
-    if (studentDataStartRowIdx === -1) {
-      studentDataStartRowIdx = Math.max(subColHeaderRowIdx + 1, 6);
-    }
 
-    // Detect student identity columns: Nama, NIS, NISN
-    let mainNameCol = -1;
-    let mainNisCol = -1;
-    let mainNisnCol = -1;
-    let mainCombinedNisCol = -1;
+    // Detect student identity columns: Nama, NIS, NISN, Kelas di kolom A–E (index 0..4)
+    let foundNisCol = -1;
+    let foundNisnCol = -1;
+    let foundClassCol = -1;
+    let foundNameCol = -1;
+    let foundCombinedNisCol = -1;
 
     for (let r = 0; r < Math.min(10, rows.length); r++) {
       const headerRow = rows[r];
       if (!Array.isArray(headerRow)) continue;
-      headerRow.forEach((cellVal, c) => {
-        const text = String(cellVal || '').trim().toLowerCase();
+      for (let c = 0; c <= Math.min(4, headerRow.length - 1); c++) {
+        const text = String(headerRow[c] || '').trim().toLowerCase();
+        if (!text) continue;
+
+        // Label Nama
         if (
           (text.includes('nama') || text.includes('peserta didik') || text.includes('siswa')) &&
           !text.includes('sekolah') &&
           !text.includes('wali') &&
           !text.includes('kegiatan') &&
-          !text.includes('ekstra')
+          !text.includes('ekstra') &&
+          !text.includes('ektra')
         ) {
-          if (mainNameCol === -1) mainNameCol = c;
+          if (foundNameCol === -1) foundNameCol = c;
         }
-        if (text.includes('nisn') || text === 'n.i.s.n' || text.includes('no nisn') || text.includes('no. nisn')) {
-          if (mainNisnCol === -1) mainNisnCol = c;
+
+        // Label Kelas
+        if (
+          text === 'kelas' ||
+          text === 'kls' ||
+          text.startsWith('kelas') ||
+          text.includes('rombel') ||
+          text.includes('tingkat')
+        ) {
+          if (foundClassCol === -1) foundClassCol = c;
+        }
+
+        // Label NIS / NISN
+        if (text.includes('nis/nisn') || text.includes('nis / nisn') || text.includes('nisn/nis')) {
+          if (foundCombinedNisCol === -1) foundCombinedNisCol = c;
+        } else if (
+          text === 'nisn' ||
+          text === 'n.i.s.n' ||
+          text === 'no nisn' ||
+          text === 'no. nisn' ||
+          text === 'nomor nisn' ||
+          (text.includes('nisn') && !text.includes('sekolah'))
+        ) {
+          if (foundNisnCol === -1) foundNisnCol = c;
         } else if (
           text === 'nis' ||
           text === 'n.i.s' ||
-          text.includes('no induk') ||
-          text.includes('nomor induk') ||
+          text === 'no induk' ||
+          text === 'nomor induk' ||
+          text === 'no. induk' ||
           (text.includes('nis') && !text.includes('nisn'))
         ) {
-          if (mainNisCol === -1) mainNisCol = c;
+          if (foundNisCol === -1) foundNisCol = c;
         }
-        if (text.includes('nis/nisn') || text.includes('nis / nisn') || text.includes('nisn/nis')) {
-          if (mainCombinedNisCol === -1) mainCombinedNisCol = c;
-        }
-      });
+      }
     }
 
-    // Default fallbacks if header names were absent or merged
-    if (mainNameCol === -1) mainNameCol = 1;
-    if (mainNisCol === -1) mainNisCol = 2;
-    if (mainNisnCol === -1) mainNisnCol = 3;
+    const mainNameCol = foundNameCol !== -1 ? foundNameCol : 1;
+    let mainNisCol: number;
+    let mainNisnCol: number;
+
+    // Aturan penentuan kolom NIS & NISN berdasarkan label header kolom A–E:
+    // 1. Jika ada "NIS" dan "NISN", pakai kolom masing-masing
+    // 2. Jika hanya ada header "NISN", pakai kolom itu untuk NIS dan NISN
+    // 3. Jika hanya ada header "NIS", pakai kolom itu untuk NIS dan NISN
+    // 4. Jika ada kombinasi NIS/NISN, pakai kolom tersebut
+    // 5. Jika tidak ada label, pakai tata letak lama (C = NIS, D = NISN)
+    if (foundNisCol !== -1 && foundNisnCol !== -1) {
+      mainNisCol = foundNisCol;
+      mainNisnCol = foundNisnCol;
+    } else if (foundNisnCol !== -1 && foundNisCol === -1) {
+      mainNisCol = foundNisnCol;
+      mainNisnCol = foundNisnCol;
+    } else if (foundNisCol !== -1 && foundNisnCol === -1) {
+      mainNisCol = foundNisCol;
+      mainNisnCol = foundNisCol;
+    } else if (foundCombinedNisCol !== -1) {
+      mainNisCol = foundCombinedNisCol;
+      mainNisnCol = foundCombinedNisCol;
+    } else {
+      mainNisCol = 2; // Kolom C
+      mainNisnCol = 3; // Kolom D
+    }
+
+    // Kolom Kelas tidak boleh masuk ke NISN
+    if (foundClassCol !== -1) {
+      if (mainNisnCol === foundClassCol) {
+        mainNisnCol = mainNisCol !== foundClassCol ? mainNisCol : (foundClassCol === 2 ? 3 : 2);
+      }
+      if (mainNisCol === foundClassCol) {
+        mainNisCol = mainNisnCol !== foundClassCol ? mainNisnCol : (foundClassCol === 3 ? 2 : 3);
+      }
+    }
+
+    // Tentukan baris awal siswa jika belum terdeteksi dari firstCellNum === 1
+    if (studentDataStartRowIdx === -1) {
+      const headerEnd = Math.max(subjectHeaderRowIdx, subColHeaderRowIdx);
+      const searchStart = headerEnd !== -1 ? headerEnd + 1 : 4;
+      for (let r = searchStart; r < Math.min(searchStart + 10, rows.length); r++) {
+        const testName = String(rows[r]?.[mainNameCol] || '').trim();
+        const testNo = String(rows[r]?.[0] || '').trim();
+        if (
+          testName.length >= 3 &&
+          !isSummaryRow(testName) &&
+          (!testNo || !isNaN(Number(testNo)))
+        ) {
+          studentDataStartRowIdx = r;
+          break;
+        }
+      }
+    }
+    if (studentDataStartRowIdx === -1) {
+      studentDataStartRowIdx = subColHeaderRowIdx !== -1 ? subColHeaderRowIdx + 1 : 5;
+    }
 
     // Map column indices to subjects
     const activeSubjects = existingSubjects.filter((s) => s.isActive);
@@ -664,7 +763,8 @@ export function parseLegerExcel(
 
     if (subjectHeaderRowIdx !== -1) {
       const subjRow = rows[subjectHeaderRowIdx];
-      for (let c = 5; c < subjRow.length; c++) {
+      const scanStartCol = Math.min(4, subjRow.length - 1);
+      for (let c = scanStartCol; c < subjRow.length; c++) {
         const headerText = String(subjRow[c] || '').trim();
         if (headerText) {
           const match = activeSubjects.find((s) => {
@@ -737,7 +837,7 @@ export function parseLegerExcel(
     let mainDateCol = -1;
     let mainWaliCol = -1;
 
-    // Extracurricular column pairs on main sheet (support both paired name/predicate or numbered columns 1, 2, 3)
+    // Extracurricular column pairs on main sheet
     interface ExtraColPair {
       nameCol: number;
       predCol: number;
@@ -748,21 +848,35 @@ export function parseLegerExcel(
     const headerSearchEnd = Math.max(subjectHeaderRowIdx + 3, 8);
     for (let r = 0; r < Math.min(headerSearchEnd, rows.length); r++) {
       const row = rows[r];
+      if (!Array.isArray(row)) continue;
       row.forEach((cellVal, c) => {
         const text = String(cellVal || '').trim().toLowerCase();
+        if (!text) return;
 
-        // Attendance headers (support 'ijin' as well as 'izin', 'tanpa keterangan' as well as 'alpa')
+        // Attendance headers (kenali 'ijin' selain 'izin' dan 'i')
         if (text === 's' || text === 'sakit' || text.includes('(s)')) {
           if (mainSickCol === -1) mainSickCol = c;
         }
-        if (text === 'i' || text === 'ijin' || text === 'izin' || text.includes('(i)') || text.includes('(ij)')) {
+        if (
+          text === 'i' ||
+          text === 'ijin' ||
+          text === 'izin' ||
+          text.includes('ijin') ||
+          text.includes('izin') ||
+          text === '(i)' ||
+          text.includes('(i)') ||
+          text.includes('(ij)')
+        ) {
           if (mainPermittedCol === -1) mainPermittedCol = c;
         }
         if (
           text === 'a' ||
           text === 'alpa' ||
+          text.includes('alpa') ||
+          text.includes('alpha') ||
           text.includes('tanpa ket') ||
           text.includes('tanpa keterangan') ||
+          text === '(a)' ||
           text.includes('(a)') ||
           text === 'tk'
         ) {
@@ -777,27 +891,59 @@ export function parseLegerExcel(
           if (mainWaliCol === -1) mainWaliCol = c;
         }
 
-        // Extracurricular headers (Ektra or Ekstra or Ekskul)
-        if (
+        // Extracurricular headers (kenali salah ketik 'Ektra', 'Ekstra', 'Ekskul')
+        const isExtraHeader =
           text.includes('ektra') ||
           text.includes('ekstra') ||
           text.includes('ekskul') ||
-          text.includes('ekstrakurikuler')
-        ) {
-          // Check if row below or next columns has 1, 2, 3
-          const nextRow = rows[r + 1];
-          if (nextRow && (String(nextRow[c]).trim() === '1' || String(nextRow[c + 1]).trim() === '2')) {
-            // Columns c, c+1, c+2 are Ekstra 1, 2, 3
-            if (!mainExtraCols.some((p) => p.nameCol === c)) {
-              mainExtraCols.push({ nameCol: c, predCol: -1, label: 'Ekstrakurikuler 1' });
+          text.includes('ekstrakurikuler') ||
+          text.includes('ektrakurikuler');
+
+        if (isExtraHeader) {
+          // Periksa apakah di bawah header ada sub-kolom bernomor 1, 2, 3
+          let foundNumberedSubCols = false;
+          for (let subR = r + 1; subR < Math.min(r + 3, rows.length); subR++) {
+            const nextRow = rows[subR];
+            if (!Array.isArray(nextRow)) continue;
+
+            const isSubNum = (val: any, num: number) => {
+              const s = String(val ?? '').trim().toLowerCase();
+              return (
+                s === String(num) ||
+                s === `${num}.` ||
+                s === `(${num})` ||
+                s === `ekstra ${num}` ||
+                s === `ektra ${num}` ||
+                s === `kegiatan ${num}`
+              );
+            };
+
+            let startCol = -1;
+            if (isSubNum(nextRow[c], 1)) {
+              startCol = c;
+            } else if (isSubNum(nextRow[c + 1], 1)) {
+              startCol = c + 1;
             }
-            if (nextRow[c + 1] !== undefined && !mainExtraCols.some((p) => p.nameCol === c + 1)) {
-              mainExtraCols.push({ nameCol: c + 1, predCol: -1, label: 'Ekstrakurikuler 2' });
+
+            if (startCol !== -1) {
+              foundNumberedSubCols = true;
+              let num = 1;
+              while (startCol + num - 1 < nextRow.length && isSubNum(nextRow[startCol + num - 1], num)) {
+                const targetCol = startCol + num - 1;
+                if (!mainExtraCols.some((p) => p.nameCol === targetCol)) {
+                  mainExtraCols.push({
+                    nameCol: targetCol,
+                    predCol: -1,
+                    label: `Ekstrakurikuler ${num}`,
+                  });
+                }
+                num++;
+              }
+              break;
             }
-            if (nextRow[c + 2] !== undefined && !mainExtraCols.some((p) => p.nameCol === c + 2)) {
-              mainExtraCols.push({ nameCol: c + 2, predCol: -1, label: 'Ekstrakurikuler 3' });
-            }
-          } else {
+          }
+
+          if (!foundNumberedSubCols) {
             // Check if adjacent column is predikat/nilai
             const nextCell = String(row[c + 1] || '').trim().toLowerCase();
             if (nextCell.includes('predikat') || nextCell.includes('nilai')) {
@@ -812,17 +958,32 @@ export function parseLegerExcel(
       });
     }
 
-    // Direct fallback for FORMAT_RAPORT__X-1 structure if headers were merged
-    if (mainSickCol === -1 && rows[4] && rows[5]) {
-      // Check row 4 & 5 directly
-      for (let c = 40; c < Math.min(65, (rows[5]?.length || 0)); c++) {
-        const val5 = String(rows[5]?.[c] || '').toLowerCase().trim();
-        const val4 = String(rows[4]?.[c] || '').toLowerCase().trim();
-        if (val5 === 'sakit' || val4.includes('sakit')) mainSickCol = c;
-        if (val5 === 'ijin' || val5 === 'izin' || val4.includes('ijin') || val4.includes('izin')) mainPermittedCol = c;
-        if (val5.includes('tanpa') || val4.includes('tanpa')) mainUnexcusedCol = c;
-        if (val5.includes('tanggal') || val4.includes('tanggal')) mainDateCol = c;
-        if (val5.includes('wali') || val4.includes('wali')) mainWaliCol = c;
+    // Direct fallback for attendance headers if not yet detected
+    if (mainSickCol === -1 || mainPermittedCol === -1 || mainUnexcusedCol === -1) {
+      for (let r = 2; r < Math.min(8, rows.length); r++) {
+        const scanRow = rows[r];
+        if (!Array.isArray(scanRow)) continue;
+        for (let c = 5; c < scanRow.length; c++) {
+          const val = String(scanRow[c] || '').toLowerCase().trim();
+          if (!val) continue;
+          if (mainSickCol === -1 && (val === 's' || val === 'sakit' || val.includes('sakit'))) {
+            mainSickCol = c;
+          }
+          if (
+            mainPermittedCol === -1 &&
+            (val === 'i' || val === 'ijin' || val === 'izin' || val.includes('ijin') || val.includes('izin'))
+          ) {
+            mainPermittedCol = c;
+          }
+          if (
+            mainUnexcusedCol === -1 &&
+            (val === 'a' || val === 'alpa' || val.includes('alpa') || val.includes('tanpa'))
+          ) {
+            mainUnexcusedCol = c;
+          }
+          if (mainDateCol === -1 && val.includes('tanggal')) mainDateCol = c;
+          if (mainWaliCol === -1 && val.includes('wali')) mainWaliCol = c;
+        }
       }
     }
 
@@ -863,21 +1024,17 @@ export function parseLegerExcel(
       if (!rawName || /^\d+$/.test(rawName)) {
         // Fallback: look for cell containing student name
         for (let c = 1; c <= Math.min(4, row.length - 1); c++) {
+          if (c === foundClassCol) continue;
           const val = String(row[c] || '').trim();
-          if (val && !/^\d+$/.test(val) && val.length > 2 && !val.includes('TOTAL') && !val.includes('RATA')) {
+          if (val && !/^\d+$/.test(val) && val.length > 2 && !isSummaryRow(val)) {
             rawName = val;
             break;
           }
         }
       }
 
-      if (
-        !rawName ||
-        rawName.toLowerCase().includes('rata') ||
-        rawName.toLowerCase().includes('total') ||
-        rawName.toLowerCase().includes('mengetahui') ||
-        rawName.toLowerCase().startsWith('nip')
-      ) {
+      // Filter baris ringkasan: lewati hanya baris yang diawali "rata-rata", "total", atau mengandung "mengetahui"
+      if (!rawName || isSummaryRow(rawName)) {
         continue;
       }
 
@@ -888,8 +1045,8 @@ export function parseLegerExcel(
       let rawNisn = String(row[mainNisnCol] || '').trim();
 
       // If combined NIS / NISN column was present
-      if (mainCombinedNisCol !== -1 && row[mainCombinedNisCol]) {
-        const comb = String(row[mainCombinedNisCol]).trim();
+      if (foundCombinedNisCol !== -1 && row[foundCombinedNisCol]) {
+        const comb = String(row[foundCombinedNisCol]).trim();
         if (comb.includes('/')) {
           const parts = comb.split('/').map((p) => p.trim());
           if (parts[0]) rawNis = parts[0];
@@ -897,17 +1054,31 @@ export function parseLegerExcel(
         }
       }
 
+      // Pastikan kolom Kelas tidak masuk ke NISN
+      if (foundClassCol !== -1 && row[foundClassCol] !== undefined) {
+        const classVal = String(row[foundClassCol]).trim();
+        if (classVal && rawNisn === classVal && rawNis !== classVal) {
+          rawNisn = rawNis;
+        }
+      }
+
       // Check if rawNis was swapped with rawNisn (NISN is 10 digits, NIS is typically 4-6 digits)
-      if (rawNis.replace(/\D/g, '').length >= 9 && rawNisn.replace(/\D/g, '').length < 9) {
+      if (
+        mainNisCol !== mainNisnCol &&
+        mainNisCol !== foundClassCol &&
+        mainNisnCol !== foundClassCol &&
+        rawNis.replace(/\D/g, '').length >= 9 &&
+        rawNisn.replace(/\D/g, '').length < 9
+      ) {
         const temp = rawNis;
         rawNis = rawNisn;
         rawNisn = temp;
       }
 
-      // If NISN is still not found, scan row columns 1 to 6 for a 10-digit number
+      // If NISN is still not found, scan row columns 1 to 6 for a 10-digit number (skip Nama & Kelas)
       if (!rawNisn || rawNisn.replace(/\D/g, '').length < 8) {
         for (let c = 1; c <= Math.min(6, row.length - 1); c++) {
-          if (c === mainNameCol) continue;
+          if (c === mainNameCol || c === foundClassCol) continue;
           let cellStr = String(row[c] || '').trim();
           if (cellStr.includes('e+') || cellStr.includes('E+')) {
             const num = Number(cellStr);
@@ -923,17 +1094,18 @@ export function parseLegerExcel(
 
       // Clean NIS digits
       let stNis = rawNis.replace(/[^\w-]/g, '').trim();
-      if (!stNis) {
+      if (!stNis || (foundClassCol !== -1 && stNis === String(row[foundClassCol] || '').trim())) {
         stNis = String(5420 + (r - studentDataStartRowIdx + 1));
       }
 
-      // Clean and ensure 10-digit standard Indonesian NISN
+      // Clean and ensure 10-digit standard Indonesian NISN (pastikan bukan nama kelas)
       let stNisn = '';
-      if (rawNisn) {
+      const isClassValue = foundClassCol !== -1 && rawNisn === String(row[foundClassCol] || '').trim();
+      if (rawNisn && !isClassValue) {
         let cleanDigits = rawNisn.replace(/\D/g, '');
         if (cleanDigits.length >= 8 && cleanDigits.length <= 10) {
           stNisn = cleanDigits.padStart(10, '0');
-        } else {
+        } else if (cleanDigits.length > 0 && !rawNisn.toLowerCase().includes('kelas') && !rawNisn.toLowerCase().includes('fase')) {
           stNisn = rawNisn.trim();
         }
       }
@@ -1041,12 +1213,13 @@ export function parseLegerExcel(
           const rawExtra = String(row[pair.nameCol] || '').trim();
           if (rawExtra && rawExtra !== '-' && rawExtra !== '—' && rawExtra !== '0') {
             const rawPred =
-              pair.predCol !== -1 ? String(row[pair.predCol] || '').trim() : 'Baik';
+              pair.predCol !== -1 ? String(row[pair.predCol] || '').trim() : '';
+            // Predikat default "Baik"
             const pred = rawPred || 'Baik';
             const activityName =
-              rawExtra.length > 2 && isNaN(Number(rawExtra))
+              rawExtra.length > 1 && isNaN(Number(rawExtra))
                 ? rawExtra
-                : pair.label || `Ekstrakurikuler Pilihan ${extraIdx + 1}`;
+                : pair.label || `Ekstrakurikuler ${extraIdx + 1}`;
 
             extracurricularsToUpsert.push({
               studentName: stName,

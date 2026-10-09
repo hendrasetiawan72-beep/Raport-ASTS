@@ -334,7 +334,7 @@ export const GradeLedgerView: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari siswa atau NIS..."
+            placeholder="Cari nama siswa atau NISN..."
             className="w-full pl-9 pr-3 py-2 bg-[#F9F7F2] border border-[#D5CDBD] rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-[#7E9685] text-[#2C241E]"
           />
         </div>
@@ -418,12 +418,6 @@ export const GradeLedgerView: React.FC = () => {
                   className="py-2.5 px-3 min-w-[210px] text-left border-r border-[#DDD6C9] bg-[#EFECE5] sticky left-10 z-30 font-bold"
                 >
                   Nama Peserta Didik
-                </th>
-                <th
-                  rowSpan={2}
-                  className="py-2.5 px-2 min-w-[70px] text-center border-r border-[#DDD6C9] bg-[#EFECE5] font-mono font-bold"
-                >
-                  NIS
                 </th>
                 <th
                   rowSpan={2}
@@ -574,10 +568,6 @@ export const GradeLedgerView: React.FC = () => {
                           <Eye className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                    </td>
-
-                    <td className="py-2 px-2 text-center font-mono text-[#4A4036] border-r border-[#DDD6C9]">
-                      {st.nis}
                     </td>
 
                     <td className="py-2 px-2 text-center font-mono text-[#7A6E5E] border-r border-[#DDD6C9]">
@@ -832,6 +822,40 @@ export const GradeLedgerView: React.FC = () => {
                   <div className="p-2.5 bg-[#EDF3EF] rounded-xl border border-[#BFD4C6] flex items-center justify-between text-xs">
                     <span className="font-semibold text-[#3B5446]">Tanggal Raport Terdeteksi:</span>
                     <span className="font-bold text-[#2C3B32]">{parsedPreview.detectedReportDate}</span>
+                  </div>
+                )}
+
+                {/* Preview Daftar Siswa & NISN yang Terbaca Otomatis */}
+                {parsedPreview.studentsToUpsert.length > 0 && (
+                  <div className="pt-2 border-t border-[#E5DFD5] space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-[#2C241E]">
+                      <span>Daftar Siswa & Nomor NISN ({parsedPreview.studentsToUpsert.length} Siswa)</span>
+                      <span className="text-[11px] text-[#5A7365] font-semibold bg-[#EDF3EF] px-2 py-0.5 rounded-md">
+                        Siap Masuk Lembar Raport Cetak
+                      </span>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto border border-[#EFECE5] rounded-lg">
+                      <table className="w-full text-[11px] text-left">
+                        <thead className="bg-[#F7F4EE] text-[#5A5043] sticky top-0 border-b border-[#E5DFD5]">
+                          <tr>
+                            <th className="py-1.5 px-2 w-8 text-center">No</th>
+                            <th className="py-1.5 px-2">Nama Siswa</th>
+                            <th className="py-1.5 px-2 w-28 text-center font-mono">NISN</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#F2EDE4]">
+                          {parsedPreview.studentsToUpsert.map((s: any, sIdx: number) => (
+                            <tr key={sIdx} className="hover:bg-[#FAF8F5]">
+                              <td className="py-1 px-2 text-center text-[#7A6E5E]">{sIdx + 1}</td>
+                              <td className="py-1 px-2 font-semibold text-[#2C241E]">{s.name}</td>
+                              <td className="py-1 px-2 text-center font-mono font-bold text-[#2C523A] bg-[#EDF3EF]/40">
+                                {s.nisn || '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </div>

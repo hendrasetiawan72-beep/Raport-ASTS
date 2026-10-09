@@ -17,6 +17,9 @@ import {
   downloadStudentTemplate,
   exportClassLegerToExcel,
   exportRankingToExcel,
+  parseNisn,
+  parseNis,
+  isSummaryOrHeaderRow,
 } from '../../utils/excel';
 import { GradeRecord, Student } from '../../types';
 
@@ -37,6 +40,7 @@ export const ExcelImportExportView: React.FC = () => {
     batchAddOrUpdateStudents,
     updateStudent,
     batchSaveGrades,
+    replaceClassDataFromLegerExcel,
     getClassRankings,
     showToast,
   } = useApp();
@@ -53,12 +57,11 @@ export const ExcelImportExportView: React.FC = () => {
   const [previewRows, setPreviewRows] = useState<any[][]>([]);
   const [detectedFormat, setDetectedFormat] = useState<string>('');
 
-  // Column mapping states for student import
+  // Column mapping states for student import (Nama, NISN, Gender, Parent)
   const [nameCol, setNameCol] = useState<number>(0);
-  const [nisCol, setNisCol] = useState<number>(1);
-  const [nisnCol, setNisnCol] = useState<number>(2);
-  const [genderCol, setGenderCol] = useState<number>(3);
-  const [parentCol, setParentCol] = useState<number>(4);
+  const [nisnCol, setNisnCol] = useState<number>(1);
+  const [genderCol, setGenderCol] = useState<number>(2);
+  const [parentCol, setParentCol] = useState<number>(3);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -109,7 +112,6 @@ export const ExcelImportExportView: React.FC = () => {
         headers.forEach((h, idx) => {
           const low = h.toLowerCase();
           if (low.includes('nama')) setNameCol(idx);
-          else if (low === 'nis' || (low.includes('nis') && !low.includes('nisn'))) setNisCol(idx);
           else if (low.includes('nisn')) setNisnCol(idx);
           else if (low.includes('jk') || low.includes('kelamin') || low.includes('l/p')) setGenderCol(idx);
           else if (low.includes('wali') || low.includes('orang tua') || low.includes('ortu')) setParentCol(idx);
@@ -145,8 +147,8 @@ export const ExcelImportExportView: React.FC = () => {
         const studentName = String(row[nameCol] || '').trim();
         if (!studentName) return;
 
-        const studentNis = String(row[nisCol] || (5000 + i + 1)).trim();
         const studentNisn = String(row[nisnCol] || '').trim();
+        const studentNis = String(5420 + i + 1);
         const studentGender = String(row[genderCol] || 'L').toUpperCase().startsWith('P') ? 'P' : 'L';
         const studentParent = String(row[parentCol] || `Wali dari ${studentName}`).trim();
 
@@ -171,67 +173,46 @@ export const ExcelImportExportView: React.FC = () => {
       setFileParsed(false);
     } else {
       // Import Leger grades & students
-      // Find students in the file and match or add to current class
-      const newGrades: GradeRecord[] = [];
       const studentsToSync: Omit<Student, 'id'>[] = [];
+      const gradesToSync: {
+        studentName: string;
+        studentNis: string;
+        subjectId: string;
+        formativeScore: number | null;
+        summativeScore: number | null;
+        competencyDesc: string;
+      }[] = [];
 
       previewRows.forEach((row, rIdx) => {
         let studentName = String(row[nameCol] !== undefined ? row[nameCol] : (row[1] || '')).trim().toUpperCase();
-        if (!studentName || studentName.includes('NAMA') || studentName.includes('RATA')) return;
+        if (!studentName || isSummaryOrHeaderRow(studentName)) return;
 
-        let rawNis = String(row[nisCol] !== undefined ? row[nisCol] : (row[2] || '')).trim();
-        let rawNisn = String(row[nisnCol] !== undefined ? row[nisnCol] : (row[3] || '')).trim();
-
-        // Swap if rawNis was 10 digits and rawNisn was 4 digits
-        if (rawNis.replace(/\D/g, '').length >= 9 && rawNisn.replace(/\D/g, '').length < 9) {
-          const temp = rawNis;
-          rawNis = rawNisn;
-          rawNisn = temp;
-        }
-
-        const nis = rawNis || String(5400 + rIdx + 1);
-        let nisn = rawNisn.replace(/\D/g, '');
-        if (nisn.length >= 8 && nisn.length <= 10) {
-          nisn = nisn.padStart(10, '0');
-        } else if (!nisn) {
+        let rawNisn = String(row[nisnCol] !== undefined ? row[nisnCol] : (row[2] || '')).trim();
+        let nisn = parseNisn(rawNisn);
+        if (!nisn) {
           nisn = `008451${String(rIdx + 1).padStart(2, '0')}${rIdx % 10}`;
         }
+        const nis = String(5420 + rIdx + 1);
 
-        // Check if student exists
-        let targetStudent = students.find(
-          (s) => s.nis === nis || s.name.toUpperCase() === studentName
-        );
-
-        if (!targetStudent) {
-          studentsToSync.push({
-            nis,
-            nisn,
-            name: studentName,
-            gender: 'L',
-            birthPlace: 'Batang',
-            birthDate: '2008-01-01',
-            classId: selectedClassId,
-            parentName: `Wali dari ${studentName}`,
-            status: 'Aktif',
-          });
-        } else if (nisn && targetStudent.nisn !== nisn) {
-          updateStudent(targetStudent.id, { nisn });
-        }
+        studentsToSync.push({
+          nis,
+          nisn,
+          name: studentName,
+          gender: 'L',
+          birthPlace: 'Batang',
+          birthDate: '2008-01-01',
+          classId: selectedClassId,
+          parentName: `Wali dari ${studentName}`,
+          status: 'Aktif',
+        });
       });
 
-      if (studentsToSync.length > 0) {
-        batchAddOrUpdateStudents(studentsToSync, 'skip_duplicate');
-      }
-
-      // Read grades for subjects across columns
-      // Each subject in the authentic sheet has 3 columns: Formatif, Sumatif, Capaian
-      // Column index starting at F (col 5 or 6)
+      // Map subjects across columns
       subjects.filter((s) => s.isActive).forEach((sub, sIdx) => {
         const baseCol = 5 + sIdx * 3;
-        previewRows.forEach((row) => {
-          const studentName = String(row[1] || '').trim().toUpperCase();
-          const targetStudent = students.find((s) => s.name.toUpperCase() === studentName);
-          if (!targetStudent) return;
+        previewRows.forEach((row, rIdx) => {
+          let studentName = String(row[nameCol] !== undefined ? row[nameCol] : (row[1] || '')).trim().toUpperCase();
+          if (!studentName || isSummaryOrHeaderRow(studentName)) return;
 
           const formVal = row[baseCol];
           const sumVal = row[baseCol + 1];
@@ -242,26 +223,27 @@ export const ExcelImportExportView: React.FC = () => {
           const sumNum =
             sumVal !== '' && !isNaN(parseFloat(sumVal)) ? parseFloat(sumVal) : null;
 
-          newGrades.push({
-            id: `${targetStudent.id}_${sub.id}_${selectedPeriodId}`,
-            studentId: targetStudent.id,
+          gradesToSync.push({
+            studentName,
+            studentNis: String(5420 + rIdx + 1),
             subjectId: sub.id,
-            periodId: selectedPeriodId,
             formativeScore: formNum,
             summativeScore: sumNum,
             competencyDesc: descVal ? String(descVal) : sub.defaultCompetencyDesc || '',
-            updatedAt: new Date().toISOString(),
           });
         });
       });
 
-      if (newGrades.length > 0) {
-        batchSaveGrades(newGrades);
-        showToast('success', `${newGrades.length} record nilai dari file Excel berhasil dimasukkan ke sistem.`);
-      } else {
-        showToast('info', 'File leger berhasil dibaca dan data siswa telah diverifikasi.');
-      }
+      replaceClassDataFromLegerExcel(
+        selectedClassId,
+        selectedPeriodId,
+        studentsToSync,
+        gradesToSync,
+        [],
+        []
+      );
 
+      showToast('success', `${gradesToSync.length} nilai dan ${studentsToSync.length} siswa berhasil disinkronkan ke lembar raport.`);
       setFileParsed(false);
     }
   };
@@ -490,26 +472,12 @@ export const ExcelImportExportView: React.FC = () => {
               <div className="font-bold text-slate-800 mb-2">
                 Sesuaikan Pemetaan Kolom Excel ke Kolom Aplikasi:
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-slate-500 mb-1">Kolom Nama</label>
                   <select
                     value={nameCol}
                     onChange={(e) => setNameCol(Number(e.target.value))}
-                    className="w-full bg-white border border-slate-300 rounded px-2 py-1 font-semibold"
-                  >
-                    {previewHeaders.map((h, i) => (
-                      <option key={i} value={i}>
-                        {h}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-slate-500 mb-1">Kolom NIS</label>
-                  <select
-                    value={nisCol}
-                    onChange={(e) => setNisCol(Number(e.target.value))}
                     className="w-full bg-white border border-slate-300 rounded px-2 py-1 font-semibold"
                   >
                     {previewHeaders.map((h, i) => (
