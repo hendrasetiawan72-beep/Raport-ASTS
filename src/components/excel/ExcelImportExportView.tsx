@@ -17,6 +17,9 @@ import {
   downloadStudentTemplate,
   exportClassLegerToExcel,
   exportRankingToExcel,
+  parseNisn,
+  parseNis,
+  isSummaryOrHeaderRow,
 } from '../../utils/excel';
 import { GradeRecord, Student } from '../../types';
 
@@ -177,29 +180,31 @@ export const ExcelImportExportView: React.FC = () => {
 
       previewRows.forEach((row, rIdx) => {
         let studentName = String(row[nameCol] !== undefined ? row[nameCol] : (row[1] || '')).trim().toUpperCase();
-        if (!studentName || studentName.includes('NAMA') || studentName.includes('RATA')) return;
+        if (!studentName || isSummaryOrHeaderRow(studentName)) return;
 
-        let rawNis = String(row[nisCol] !== undefined ? row[nisCol] : (row[2] || '')).trim();
-        let rawNisn = String(row[nisnCol] !== undefined ? row[nisnCol] : (row[3] || '')).trim();
+        let rawNis = row[nisCol] !== undefined ? row[nisCol] : (row[2] || '');
+        let rawNisn = row[nisnCol] !== undefined ? row[nisnCol] : (row[3] || '');
+
+        let nisn = parseNisn(rawNisn);
+        let nis = parseNis(rawNis);
 
         // Swap if rawNis was 10 digits and rawNisn was 4 digits
-        if (rawNis.replace(/\D/g, '').length >= 9 && rawNisn.replace(/\D/g, '').length < 9) {
-          const temp = rawNis;
-          rawNis = rawNisn;
-          rawNisn = temp;
+        if (nis && nisn && nis.length >= 9 && nisn.length < 9) {
+          const temp = nis;
+          nis = nisn;
+          nisn = temp;
         }
 
-        const nis = rawNis || String(5400 + rIdx + 1);
-        let nisn = rawNisn.replace(/\D/g, '');
-        if (nisn.length >= 8 && nisn.length <= 10) {
-          nisn = nisn.padStart(10, '0');
-        } else if (!nisn) {
+        if (!nisn) {
           nisn = `008451${String(rIdx + 1).padStart(2, '0')}${rIdx % 10}`;
+        }
+        if (!nis) {
+          nis = String(5420 + rIdx + 1);
         }
 
         // Check if student exists
         let targetStudent = students.find(
-          (s) => s.nis === nis || s.name.toUpperCase() === studentName
+          (s) => s.nis === nis || s.name.toUpperCase() === studentName || (s.nisn && s.nisn === nisn)
         );
 
         if (!targetStudent) {
@@ -214,8 +219,14 @@ export const ExcelImportExportView: React.FC = () => {
             parentName: `Wali dari ${studentName}`,
             status: 'Aktif',
           });
-        } else if (nisn && targetStudent.nisn !== nisn) {
-          updateStudent(targetStudent.id, { nisn });
+        } else {
+          // Update both NISN and NIS if they differ
+          const patch: Partial<Student> = {};
+          if (nisn && targetStudent.nisn !== nisn) patch.nisn = nisn;
+          if (nis && targetStudent.nis !== nis) patch.nis = nis;
+          if (Object.keys(patch).length > 0) {
+            updateStudent(targetStudent.id, patch);
+          }
         }
       });
 

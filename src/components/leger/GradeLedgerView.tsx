@@ -834,6 +834,42 @@ export const GradeLedgerView: React.FC = () => {
                     <span className="font-bold text-[#2C3B32]">{parsedPreview.detectedReportDate}</span>
                   </div>
                 )}
+
+                {/* Preview Daftar Siswa & NISN yang Terbaca Otomatis */}
+                {parsedPreview.studentsToUpsert.length > 0 && (
+                  <div className="pt-2 border-t border-[#E5DFD5] space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-[#2C241E]">
+                      <span>Daftar Siswa & Nomor NISN ({parsedPreview.studentsToUpsert.length} Siswa)</span>
+                      <span className="text-[11px] text-[#5A7365] font-semibold bg-[#EDF3EF] px-2 py-0.5 rounded-md">
+                        Siap Masuk Lembar Raport Cetak
+                      </span>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto border border-[#EFECE5] rounded-lg">
+                      <table className="w-full text-[11px] text-left">
+                        <thead className="bg-[#F7F4EE] text-[#5A5043] sticky top-0 border-b border-[#E5DFD5]">
+                          <tr>
+                            <th className="py-1.5 px-2 w-8 text-center">No</th>
+                            <th className="py-1.5 px-2">Nama Siswa</th>
+                            <th className="py-1.5 px-2 w-20 text-center font-mono">NIS</th>
+                            <th className="py-1.5 px-2 w-28 text-center font-mono">NISN</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#F2EDE4]">
+                          {parsedPreview.studentsToUpsert.map((s: any, sIdx: number) => (
+                            <tr key={sIdx} className="hover:bg-[#FAF8F5]">
+                              <td className="py-1 px-2 text-center text-[#7A6E5E]">{sIdx + 1}</td>
+                              <td className="py-1 px-2 font-semibold text-[#2C241E]">{s.name}</td>
+                              <td className="py-1 px-2 text-center font-mono text-[#5A5043]">{s.nis}</td>
+                              <td className="py-1 px-2 text-center font-mono font-bold text-[#2C523A] bg-[#EDF3EF]/40">
+                                {s.nisn || '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="p-3.5 bg-[#FFF9F2] rounded-2xl border border-[#F0DDC5] text-xs text-[#7A5023] space-y-1">

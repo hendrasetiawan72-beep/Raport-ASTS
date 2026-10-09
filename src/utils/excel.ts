@@ -394,6 +394,116 @@ export function downloadLegerTemplate(
 }
 
 /**
+ * Parses and sanitizes a 10-digit Indonesian National Student Identity Number (NISN).
+ * Handles numbers, scientific notation (e.g. 1.04E+9), and restores leading zeroes.
+ */
+export function parseNisn(val: any): string {
+  if (val === null || val === undefined) return '';
+  let str = String(val).trim();
+  if (!str) return '';
+
+  if (typeof val === 'number') {
+    str = Math.round(val).toFixed(0);
+  } else if (str.toLowerCase().includes('e+')) {
+    const num = Number(str);
+    if (!isNaN(num)) str = Math.round(num).toFixed(0);
+  }
+
+  const digits = str.replace(/\D/g, '');
+  if (!digits || digits === '0') return '';
+
+  // In Indonesia, authentic NISN is 10 digits (often starts with '0', e.g. 0116445648).
+  // Excel numeric formatting frequently strips leading 0s leaving 8 or 9 digits.
+  if (digits.length >= 8 && digits.length <= 10) {
+    return digits.padStart(10, '0');
+  }
+  if (digits.length > 10) {
+    return digits.slice(0, 10);
+  }
+  return digits;
+}
+
+/**
+ * Parses and cleans local school student identity number (NIS).
+ */
+export function parseNis(val: any): string {
+  if (val === null || val === undefined) return '';
+  let str = String(val).trim();
+  if (!str) return '';
+
+  if (typeof val === 'number') {
+    str = Math.round(val).toFixed(0);
+  } else if (str.toLowerCase().includes('e+')) {
+    const num = Number(str);
+    if (!isNaN(num)) str = Math.round(num).toFixed(0);
+  }
+
+  // Preserve alphanumeric, dashes, dots, and slashes
+  return str.replace(/[^\w\-\/\.]/g, '').trim();
+}
+
+/**
+ * Strictly identifies summary rows or table headers.
+ * CRITICAL: NEVER filters out authentic Indonesian student names containing
+ * substrings like "PRATAMA", "RATNA", "SURATMI", "WIRATAMA", "PURNAMA", "KUSUMA".
+ */
+export function isSummaryOrHeaderRow(text: string): boolean {
+  if (!text) return true;
+  const s = text.trim().toLowerCase();
+  if (s.length < 2) return true;
+
+  // Exact matches for table headers
+  const headerExacts = [
+    'no',
+    'no.',
+    'nomor',
+    'nama',
+    'nama siswa',
+    'nama peserta didik',
+    'nama peserta',
+    'nama lengkap',
+    'nis',
+    'nisn',
+    'nis/nisn',
+    'nis / nisn',
+    'nisn/nis',
+    'kelas',
+    'fase',
+    'rombel',
+    'l/p',
+    'jk',
+    'jenis kelamin',
+  ];
+  if (headerExacts.includes(s)) return true;
+
+  // Summary row prefixes
+  const summaryPrefixes = [
+    'rata-rata',
+    'rata rata',
+    'nilai rata',
+    'rerata',
+    'total',
+    'jumlah',
+    'mengetahui',
+    'kepala sekolah',
+    'wali kelas',
+    'nip.',
+    'nip ',
+    'nbm.',
+    'nbm ',
+    'catatan:',
+    'keterangan:',
+  ];
+  if (summaryPrefixes.some((p) => s.startsWith(p))) return true;
+  if (s === 'rata' || s === 'mean') return true;
+
+  // Exact header titles
+  if (s.startsWith('nama peserta didik') || s.startsWith('nama siswa')) return true;
+
+  return false;
+}
+
+/**
  * Specifically parses official Leger Excel files (e.g. FORMAT_RAPORT__X-1.xlsx).
  * Automatically extracts students, subjects, formative, summative, competency descriptions,
  * attendance (Kehadiran: S, I, A), and extracurricular activities (Ekstra).
@@ -430,7 +540,6 @@ export function parseLegerExcel(
         header: 1,
         defval: '',
       });
-      // Scan for header row
       let sCol = -1;
       let iCol = -1;
       let aCol = -1;
@@ -454,7 +563,7 @@ export function parseLegerExcel(
         const row = attRows[r];
         const rawName = String(row[nameCol] || '').trim().toUpperCase();
         const rawNis = String(row[nisCol] || '').trim();
-        if (rawName && !rawName.includes('TOTAL') && !rawName.includes('RATA')) {
+        if (rawName && !isSummaryOrHeaderRow(rawName)) {
           const sick = sCol !== -1 && !isNaN(parseInt(row[sCol])) ? parseInt(row[sCol]) : 0;
           const permitted = iCol !== -1 && !isNaN(parseInt(row[iCol])) ? parseInt(row[iCol]) : 0;
           const unexcused = aCol !== -1 && !isNaN(parseInt(row[aCol])) ? parseInt(row[aCol]) : 0;
@@ -506,7 +615,7 @@ export function parseLegerExcel(
         const row = extraRows[r];
         const rawName = String(row[nameCol] || '').trim().toUpperCase();
         const rawNis = String(row[nisCol] || '').trim();
-        if (rawName && !rawName.includes('TOTAL') && !rawName.includes('RATA')) {
+        if (rawName && !isSummaryOrHeaderRow(rawName)) {
           const extraName = ex1Col !== -1 ? String(row[ex1Col] || '').trim() : '';
           const extraPred = pred1Col !== -1 ? String(row[pred1Col] || '').trim() : 'Baik';
           const extraDesc = desc1Col !== -1 ? String(row[desc1Col] || '').trim() : '';
@@ -528,11 +637,36 @@ export function parseLegerExcel(
       }
     }
 
-    // 2. Main LEGER Sheet
+    // 2. Main LEGER Sheet Selection (Smart sheet fallback)
     let targetSheetName = wb.SheetNames[0];
-    const legerSheet = wb.SheetNames.find((s) => s.toLowerCase().includes('leger'));
-    if (legerSheet) {
-      targetSheetName = legerSheet;
+    const sheetMatches = wb.SheetNames.filter((s) => {
+      const low = s.toLowerCase();
+      return (
+        low.includes('leger') ||
+        low.includes('nilai') ||
+        low.includes('raport') ||
+        low.includes('rapor') ||
+        low.includes('rekap') ||
+        low.includes('daftar')
+      );
+    });
+
+    if (sheetMatches.length > 0) {
+      const legerMatch = sheetMatches.find((s) => s.toLowerCase().includes('leger'));
+      targetSheetName = legerMatch || sheetMatches[0];
+    } else if (wb.SheetNames.length > 1) {
+      // Pick sheet with maximum rows containing student-like data
+      let maxScore = -1;
+      wb.SheetNames.forEach((sName) => {
+        const sh = wb.Sheets[sName];
+        if (sh) {
+          const rws: any[][] = XLSX.utils.sheet_to_json(sh, { header: 1, defval: '' });
+          if (rws.length > maxScore) {
+            maxScore = rws.length;
+            targetSheetName = sName;
+          }
+        }
+      });
     }
 
     const ws = wb.Sheets[targetSheetName];
@@ -553,7 +687,7 @@ export function parseLegerExcel(
     }
 
     const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-    if (rows.length < 5) {
+    if (rows.length < 3) {
       return {
         success: false,
         studentsToUpsert: [],
@@ -572,14 +706,15 @@ export function parseLegerExcel(
     // Find header rows
     let subjectHeaderRowIdx = -1;
     let subColHeaderRowIdx = -1;
-    let studentDataStartRowIdx = -1;
+    let identityHeaderRowIdx = -1;
 
     for (let r = 0; r < Math.min(15, rows.length); r++) {
       const rowStr = rows[r].map((c) => String(c).toLowerCase()).join(' ');
       if (
         (rowStr.includes('pendidikan agama') ||
           rowStr.includes('matematika') ||
-          rowStr.includes('pancasila')) &&
+          rowStr.includes('pancasila') ||
+          rowStr.includes('bahasa indonesia')) &&
         subjectHeaderRowIdx === -1
       ) {
         subjectHeaderRowIdx = r;
@@ -593,29 +728,27 @@ export function parseLegerExcel(
         subColHeaderRowIdx = r;
       }
       if (
-        r > 3 &&
-        typeof rows[r][0] === 'number' &&
-        String(rows[r][1]).trim().length > 3 &&
-        studentDataStartRowIdx === -1
+        (rowStr.includes('nama') && (rowStr.includes('nis') || rowStr.includes('nisn'))) &&
+        identityHeaderRowIdx === -1
       ) {
-        studentDataStartRowIdx = r;
+        identityHeaderRowIdx = r;
       }
     }
 
-    if (subColHeaderRowIdx === -1 && subjectHeaderRowIdx !== -1) {
-      subColHeaderRowIdx = subjectHeaderRowIdx + 1;
-    }
-    if (studentDataStartRowIdx === -1) {
-      studentDataStartRowIdx = Math.max(subColHeaderRowIdx + 1, 6);
-    }
+    if (subjectHeaderRowIdx === -1) subjectHeaderRowIdx = 0;
+    if (subColHeaderRowIdx === -1) subColHeaderRowIdx = subjectHeaderRowIdx + 1;
 
-    // Detect student identity columns: Nama, NIS, NISN
+    // Detect student identity columns: Nama, NIS, NISN, Kelas, Fase
     let mainNameCol = -1;
     let mainNisCol = -1;
     let mainNisnCol = -1;
+    let mainClassCol = -1;
+    let mainFaseCol = -1;
     let mainCombinedNisCol = -1;
 
-    for (let r = 0; r < Math.min(10, rows.length); r++) {
+    // A. Header Row Inspection
+    const headerScanMax = Math.max(subColHeaderRowIdx + 2, 8);
+    for (let r = 0; r < Math.min(headerScanMax, rows.length); r++) {
       const headerRow = rows[r];
       if (!Array.isArray(headerRow)) continue;
       headerRow.forEach((cellVal, c) => {
@@ -625,20 +758,38 @@ export function parseLegerExcel(
           !text.includes('sekolah') &&
           !text.includes('wali') &&
           !text.includes('kegiatan') &&
-          !text.includes('ekstra')
+          !text.includes('ekstra') &&
+          !text.includes('ortu') &&
+          !text.includes('ayah') &&
+          !text.includes('ibu')
         ) {
           if (mainNameCol === -1) mainNameCol = c;
         }
-        if (text.includes('nisn') || text === 'n.i.s.n' || text.includes('no nisn') || text.includes('no. nisn')) {
+        if (
+          text === 'nisn' ||
+          text.includes('nisn') ||
+          text === 'n.i.s.n' ||
+          text.includes('no nisn') ||
+          text.includes('no. nisn') ||
+          text.includes('nomor nisn')
+        ) {
           if (mainNisnCol === -1) mainNisnCol = c;
         } else if (
           text === 'nis' ||
           text === 'n.i.s' ||
           text.includes('no induk') ||
           text.includes('nomor induk') ||
+          text.includes('no. induk') ||
+          text === 'nipd' ||
           (text.includes('nis') && !text.includes('nisn'))
         ) {
           if (mainNisCol === -1) mainNisCol = c;
+        }
+        if (text === 'kelas' || text.includes('rombel')) {
+          if (mainClassCol === -1) mainClassCol = c;
+        }
+        if (text === 'fase') {
+          if (mainFaseCol === -1) mainFaseCol = c;
         }
         if (text.includes('nis/nisn') || text.includes('nis / nisn') || text.includes('nisn/nis')) {
           if (mainCombinedNisCol === -1) mainCombinedNisCol = c;
@@ -646,10 +797,109 @@ export function parseLegerExcel(
       });
     }
 
-    // Default fallbacks if header names were absent or merged
+    // B. Content-Based Column Detection & Validation
+    // Scan candidate rows below headers to verify column assignments
+    const scanStart = Math.max(subColHeaderRowIdx + 1, 1);
+    const scanEnd = Math.min(scanStart + 25, rows.length);
+    const nisnScores: Record<number, number> = {};
+    const nisScores: Record<number, number> = {};
+    const nameScores: Record<number, number> = {};
+
+    for (let r = scanStart; r < scanEnd; r++) {
+      const row = rows[r];
+      if (!Array.isArray(row)) continue;
+      for (let c = 0; c <= Math.min(8, row.length - 1); c++) {
+        const val = row[c];
+        const nisnCand = parseNisn(val);
+        const nisCand = parseNis(val);
+        const strVal = String(val || '').trim();
+
+        if (nisnCand.length === 10) {
+          nisnScores[c] = (nisnScores[c] || 0) + 1;
+        }
+        if (
+          nisCand &&
+          nisCand.length >= 3 &&
+          nisCand.length <= 7 &&
+          !/^[1-9]$/.test(nisCand) &&
+          nisCand !== nisnCand
+        ) {
+          nisScores[c] = (nisScores[c] || 0) + 1;
+        }
+        if (
+          strVal.length >= 3 &&
+          /[a-zA-Z]{3,}/.test(strVal) &&
+          !isSummaryOrHeaderRow(strVal)
+        ) {
+          nameScores[c] = (nameScores[c] || 0) + 1;
+        }
+      }
+    }
+
+    // If NISN col was not found or has weak score, pick column with highest NISN score
+    let bestNisnCol = -1;
+    let maxNisnCount = 0;
+    Object.entries(nisnScores).forEach(([cStr, cnt]) => {
+      if (cnt > maxNisnCount) {
+        maxNisnCount = cnt;
+        bestNisnCol = Number(cStr);
+      }
+    });
+    if (bestNisnCol !== -1 && maxNisnCount >= 2) {
+      mainNisnCol = bestNisnCol;
+    }
+
+    // Same for NIS col
+    let bestNisCol = -1;
+    let maxNisCount = 0;
+    Object.entries(nisScores).forEach(([cStr, cnt]) => {
+      const colNum = Number(cStr);
+      if (colNum !== mainNisnCol && cnt > maxNisCount) {
+        maxNisCount = cnt;
+        bestNisCol = colNum;
+      }
+    });
+    if (bestNisCol !== -1 && maxNisCount >= 2) {
+      mainNisCol = bestNisCol;
+    }
+
+    // Same for Name col
+    let bestNameCol = -1;
+    let maxNameCount = 0;
+    Object.entries(nameScores).forEach(([cStr, cnt]) => {
+      if (cnt > maxNameCount) {
+        maxNameCount = cnt;
+        bestNameCol = Number(cStr);
+      }
+    });
+    if (bestNameCol !== -1 && maxNameCount >= 2) {
+      mainNameCol = bestNameCol;
+    }
+
+    // Standard Indonesian template fallback: NO=0, NAMA=1, NIS=2, NISN=3
     if (mainNameCol === -1) mainNameCol = 1;
     if (mainNisCol === -1) mainNisCol = 2;
     if (mainNisnCol === -1) mainNisnCol = 3;
+
+    // Determine student data start row
+    let studentDataStartRowIdx = -1;
+    for (let r = 0; r < Math.min(20, rows.length); r++) {
+      const row = rows[r];
+      if (!Array.isArray(row) || row.length < 2) continue;
+      const candName = String(row[mainNameCol] || '').trim();
+      if (
+        candName &&
+        /[a-zA-Z]{3,}/.test(candName) &&
+        !isSummaryOrHeaderRow(candName) &&
+        r > identityHeaderRowIdx
+      ) {
+        studentDataStartRowIdx = r;
+        break;
+      }
+    }
+    if (studentDataStartRowIdx === -1) {
+      studentDataStartRowIdx = Math.max(subColHeaderRowIdx + 1, 2);
+    }
 
     // Map column indices to subjects
     const activeSubjects = existingSubjects.filter((s) => s.isActive);
@@ -862,30 +1112,27 @@ export function parseLegerExcel(
       let rawName = String(row[mainNameCol] || '').trim();
       if (!rawName || /^\d+$/.test(rawName)) {
         // Fallback: look for cell containing student name
-        for (let c = 1; c <= Math.min(4, row.length - 1); c++) {
+        for (let c = 0; c <= Math.min(6, row.length - 1); c++) {
+          if (c === mainNisnCol || c === mainNisCol) continue;
           const val = String(row[c] || '').trim();
-          if (val && !/^\d+$/.test(val) && val.length > 2 && !val.includes('TOTAL') && !val.includes('RATA')) {
+          if (val && !/^\d+$/.test(val) && val.length >= 2 && !isSummaryOrHeaderRow(val)) {
             rawName = val;
             break;
           }
         }
       }
 
-      if (
-        !rawName ||
-        rawName.toLowerCase().includes('rata') ||
-        rawName.toLowerCase().includes('total') ||
-        rawName.toLowerCase().includes('mengetahui') ||
-        rawName.toLowerCase().startsWith('nip')
-      ) {
+      // Filter out summary/header rows without false positives for names like Pratama, Ratna, etc.
+      if (!rawName || isSummaryOrHeaderRow(rawName)) {
         continue;
       }
 
       const stName = rawName.toUpperCase();
+      const studentIdx = studentsToUpsert.length;
 
       // Extract NIS & NISN smartly
-      let rawNis = String(row[mainNisCol] || '').trim();
-      let rawNisn = String(row[mainNisnCol] || '').trim();
+      let rawNis = row[mainNisCol];
+      let rawNisn = row[mainNisnCol];
 
       // If combined NIS / NISN column was present
       if (mainCombinedNisCol !== -1 && row[mainCombinedNisCol]) {
@@ -897,50 +1144,55 @@ export function parseLegerExcel(
         }
       }
 
+      let stNisn = parseNisn(rawNisn);
+      let stNis = parseNis(rawNis);
+
       // Check if rawNis was swapped with rawNisn (NISN is 10 digits, NIS is typically 4-6 digits)
-      if (rawNis.replace(/\D/g, '').length >= 9 && rawNisn.replace(/\D/g, '').length < 9) {
-        const temp = rawNis;
-        rawNis = rawNisn;
-        rawNisn = temp;
+      if (stNis && stNisn && stNis.length >= 9 && stNisn.length < 9) {
+        const temp = stNis;
+        stNis = stNisn;
+        stNisn = temp;
       }
 
-      // If NISN is still not found, scan row columns 1 to 6 for a 10-digit number
-      if (!rawNisn || rawNisn.replace(/\D/g, '').length < 8) {
-        for (let c = 1; c <= Math.min(6, row.length - 1); c++) {
+      // If NISN is still not found or less than 8 digits, scan row columns 0 to 8 for a 10-digit number
+      if (!stNisn || stNisn.length < 8) {
+        for (let c = 0; c <= Math.min(8, row.length - 1); c++) {
           if (c === mainNameCol) continue;
-          let cellStr = String(row[c] || '').trim();
-          if (cellStr.includes('e+') || cellStr.includes('E+')) {
-            const num = Number(cellStr);
-            if (!isNaN(num)) cellStr = num.toFixed(0);
-          }
-          const digits = cellStr.replace(/\D/g, '');
-          if (digits.length >= 8 && digits.length <= 10) {
-            rawNisn = digits.padStart(10, '0');
+          const cand = parseNisn(row[c]);
+          if (cand.length === 10) {
+            stNisn = cand;
             break;
           }
         }
       }
 
-      // Clean NIS digits
-      let stNis = rawNis.replace(/[^\w-]/g, '').trim();
-      if (!stNis) {
-        stNis = String(5420 + (r - studentDataStartRowIdx + 1));
-      }
-
-      // Clean and ensure 10-digit standard Indonesian NISN
-      let stNisn = '';
-      if (rawNisn) {
-        let cleanDigits = rawNisn.replace(/\D/g, '');
-        if (cleanDigits.length >= 8 && cleanDigits.length <= 10) {
-          stNisn = cleanDigits.padStart(10, '0');
-        } else {
-          stNisn = rawNisn.trim();
+      // If NIS is still not found or invalid, scan columns 0 to 6 for a 3-6 digit number
+      if (!stNis || stNis === stNisn || stNis.length >= 9) {
+        for (let c = 0; c <= Math.min(6, row.length - 1); c++) {
+          if (c === mainNameCol || c === mainNisnCol) continue;
+          const cand = parseNis(row[c]);
+          if (
+            cand &&
+            cand.length >= 3 &&
+            cand.length <= 7 &&
+            cand !== stNisn &&
+            !/^[1-9]$/.test(cand) // Not row numbering 1..9
+          ) {
+            stNis = cand;
+            break;
+          }
         }
       }
-      // If NISN was completely missing in file, generate consistent valid NISN based on NIS
+
+      // Clean and ensure 10-digit standard Indonesian NISN fallback
       if (!stNisn) {
-        const seq = String(r - studentDataStartRowIdx + 1).padStart(2, '0');
-        stNisn = `008451${seq}${(r - studentDataStartRowIdx) % 10}`;
+        const seq = String(studentIdx + 1).padStart(2, '0');
+        stNisn = `008451${seq}${studentIdx % 10}`;
+      }
+
+      // Clean NIS digits fallback
+      if (!stNis || stNis === stNisn) {
+        stNis = String(5420 + studentIdx + 1);
       }
 
       // Detect wali kelas and date from row if available
@@ -1104,8 +1356,30 @@ export function parseExcelFile(
   errors: string[];
 } {
   const wb = XLSX.read(fileData, { type: 'array' });
-  const firstSheetName = wb.SheetNames[0];
-  const sheet = wb.Sheets[firstSheetName];
+  let targetSheetName = wb.SheetNames[0];
+
+  // Pick sheet matching keywords or with max rows
+  const matchingSheet = wb.SheetNames.find((s) => {
+    const low = s.toLowerCase();
+    return low.includes('leger') || low.includes('nilai') || low.includes('siswa') || low.includes('rapor') || low.includes('rekap');
+  });
+  if (matchingSheet) {
+    targetSheetName = matchingSheet;
+  } else if (wb.SheetNames.length > 1) {
+    let maxLen = -1;
+    wb.SheetNames.forEach((s) => {
+      const sh = wb.Sheets[s];
+      if (sh) {
+        const rws: any[][] = XLSX.utils.sheet_to_json(sh, { header: 1, defval: '' });
+        if (rws.length > maxLen) {
+          maxLen = rws.length;
+          targetSheetName = s;
+        }
+      }
+    });
+  }
+
+  const sheet = wb.Sheets[targetSheetName];
 
   if (!sheet) {
     return { type: 'unknown', data: [], headers: [], errors: ['File Excel tidak memiliki lembar kerja (sheet).'] };
