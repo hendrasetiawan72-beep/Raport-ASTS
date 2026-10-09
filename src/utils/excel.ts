@@ -64,7 +64,7 @@ export function exportClassLegerToExcel(
   rows.push([]); // blank
 
   // Header row 1 (Subject groups / titles)
-  const headerRow1: string[] = ['NO', 'Nama peserta didik', 'NISN', 'Kelas', 'Fase'];
+  const headerRow1: string[] = ['NO', 'Nama peserta didik', 'NIS', 'NISN', 'Kelas', 'Fase'];
   activeSubjects.forEach((sub) => {
     headerRow1.push(sub.name, '', '');
   });
@@ -73,7 +73,7 @@ export function exportClassLegerToExcel(
   rows.push(headerRow1);
 
   // Header row 2 (Sub-headers)
-  const headerRow2: string[] = ['', '', '', '', ''];
+  const headerRow2: string[] = ['', '', '', '', '', ''];
   activeSubjects.forEach(() => {
     headerRow2.push('Formatif', 'Sumatif', 'Capaian Kompetensi');
   });
@@ -92,6 +92,7 @@ export function exportClassLegerToExcel(
     const row: any[] = [
       idx + 1,
       st.name,
+      st.nis,
       st.nisn,
       classGroup.name,
       classGroup.fase,
@@ -140,10 +141,10 @@ export function exportClassLegerToExcel(
 
   // Merge headers for subjects (3 columns per subject)
   const merges: XLSX.Range[] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 4 + activeSubjects.length * 3 + 10 } }, // Title
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 + activeSubjects.length * 3 + 10 } }, // Title
   ];
 
-  let colIdx = 5;
+  let colIdx = 6;
   activeSubjects.forEach(() => {
     merges.push({
       s: { r: 3, c: colIdx },
@@ -153,7 +154,7 @@ export function exportClassLegerToExcel(
   });
 
   // Merges for Kehadiran (3 cols) & Ekstra (2 cols each)
-  const attStartCol = 5 + activeSubjects.length * 3 + 4;
+  const attStartCol = 6 + activeSubjects.length * 3 + 4;
   merges.push({ s: { r: 3, c: attStartCol }, e: { r: 3, c: attStartCol + 2 } });
   merges.push({ s: { r: 3, c: attStartCol + 3 }, e: { r: 3, c: attStartCol + 4 } });
   merges.push({ s: { r: 3, c: attStartCol + 5 }, e: { r: 3, c: attStartCol + 6 } });
@@ -164,6 +165,7 @@ export function exportClassLegerToExcel(
   const colWidths: { wch: number }[] = [
     { wch: 5 }, // NO
     { wch: 32 }, // Nama
+    { wch: 10 }, // NIS
     { wch: 14 }, // NISN
     { wch: 10 }, // Kelas
     { wch: 8 }, // Fase
@@ -199,11 +201,12 @@ export function exportRankingToExcel(
   rows.push([`REKAP PERINGKAT KELAS — ${schoolName.toUpperCase()}`]);
   rows.push([`Kelas: ${className} | Semester: ${period.semester} | TP: ${period.academicYear} | Penilaian: ${period.assessmentType}`]);
   rows.push([]);
-  rows.push(['Peringkat', 'NISN', 'Nama Peserta Didik', 'Nilai Rata-rata', 'Total Nilai Sumatif', 'Mapel Terisi', 'Status']);
+  rows.push(['Peringkat', 'NIS', 'NISN', 'Nama Peserta Didik', 'Nilai Rata-rata', 'Total Nilai Sumatif', 'Mapel Terisi', 'Status']);
 
   rankings.forEach((r) => {
     rows.push([
       r.rank > 0 ? r.rank : 'Belum Lengkap',
+      r.student.nis,
       r.student.nisn,
       r.student.name,
       r.averageScore,
@@ -215,6 +218,7 @@ export function exportRankingToExcel(
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
   ws['!cols'] = [
+    { wch: 12 },
     { wch: 12 },
     { wch: 16 },
     { wch: 32 },
@@ -294,7 +298,7 @@ export function downloadLegerTemplate(
   rows.push([]);
 
   // Header 1
-  const headerRow1: string[] = ['NO', 'Nama peserta didik', 'NISN', 'Kelas', 'Fase'];
+  const headerRow1: string[] = ['NO', 'Nama peserta didik', 'NIS', 'NISN', 'Kelas', 'Fase'];
   activeSubjects.forEach((sub) => {
     headerRow1.push(sub.name, '', '');
   });
@@ -303,7 +307,7 @@ export function downloadLegerTemplate(
   rows.push(headerRow1);
 
   // Header 2
-  const headerRow2: string[] = ['', '', '', '', ''];
+  const headerRow2: string[] = ['', '', '', '', '', ''];
   activeSubjects.forEach(() => {
     headerRow2.push('Formatif', 'Sumatif', 'Capaian Kompetensi');
   });
@@ -316,6 +320,7 @@ export function downloadLegerTemplate(
     {
       no: 1,
       name: 'ACHMAD KURNIAWAN',
+      nis: '5421',
       nisn: '0081234567',
       sick: 0,
       perm: 1,
@@ -328,6 +333,7 @@ export function downloadLegerTemplate(
     {
       no: 2,
       name: 'BAGAS DWI SAPUTRA',
+      nis: '5422',
       nisn: '0081234568',
       sick: 2,
       perm: 0,
@@ -340,6 +346,7 @@ export function downloadLegerTemplate(
     {
       no: 3,
       name: 'CANDRA ADI PRASETYO',
+      nis: '5423',
       nisn: '0081234569',
       sick: 0,
       perm: 0,
@@ -352,7 +359,7 @@ export function downloadLegerTemplate(
   ];
 
   sampleStudents.forEach((st) => {
-    const row: any[] = [st.no, st.name, st.nisn, classGroup.name, classGroup.fase];
+    const row: any[] = [st.no, st.name, st.nis, st.nisn, classGroup.name, classGroup.fase];
     activeSubjects.forEach(() => {
       row.push(80, 85, 'Menunjukkan pemahaman materi dengan baik');
     });
@@ -364,10 +371,10 @@ export function downloadLegerTemplate(
   const ws = XLSX.utils.aoa_to_sheet(rows);
 
   const merges: XLSX.Range[] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 4 + activeSubjects.length * 3 + 10 } },
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 + activeSubjects.length * 3 + 10 } },
   ];
 
-  let colIdx = 5;
+  let colIdx = 6;
   activeSubjects.forEach(() => {
     merges.push({
       s: { r: 3, c: colIdx },
@@ -376,7 +383,7 @@ export function downloadLegerTemplate(
     colIdx += 3;
   });
 
-  const attCol = 5 + activeSubjects.length * 3 + 4;
+  const attCol = 6 + activeSubjects.length * 3 + 4;
   merges.push({ s: { r: 3, c: attCol }, e: { r: 3, c: attCol + 2 } });
   merges.push({ s: { r: 3, c: attCol + 3 }, e: { r: 3, c: attCol + 4 } });
   merges.push({ s: { r: 3, c: attCol + 5 }, e: { r: 3, c: attCol + 6 } });
@@ -384,116 +391,6 @@ export function downloadLegerTemplate(
   ws['!merges'] = merges;
   XLSX.utils.book_append_sheet(wb, ws, 'LEGER');
   XLSX.writeFile(wb, `Template_Leger_${classGroup.name.replace(/\s+/g, '_')}.xlsx`);
-}
-
-/**
- * Parses and sanitizes a 10-digit Indonesian National Student Identity Number (NISN).
- * Handles numbers, scientific notation (e.g. 1.04E+9), and restores leading zeroes.
- */
-export function parseNisn(val: any): string {
-  if (val === null || val === undefined) return '';
-  let str = String(val).trim();
-  if (!str) return '';
-
-  if (typeof val === 'number') {
-    str = Math.round(val).toFixed(0);
-  } else if (str.toLowerCase().includes('e+')) {
-    const num = Number(str);
-    if (!isNaN(num)) str = Math.round(num).toFixed(0);
-  }
-
-  const digits = str.replace(/\D/g, '');
-  if (!digits || digits === '0') return '';
-
-  // In Indonesia, authentic NISN is 10 digits (often starts with '0', e.g. 0116445648).
-  // Excel numeric formatting frequently strips leading 0s leaving 8 or 9 digits.
-  if (digits.length >= 8 && digits.length <= 10) {
-    return digits.padStart(10, '0');
-  }
-  if (digits.length > 10) {
-    return digits.slice(0, 10);
-  }
-  return digits;
-}
-
-/**
- * Parses and cleans local school student identity number (NIS).
- */
-export function parseNis(val: any): string {
-  if (val === null || val === undefined) return '';
-  let str = String(val).trim();
-  if (!str) return '';
-
-  if (typeof val === 'number') {
-    str = Math.round(val).toFixed(0);
-  } else if (str.toLowerCase().includes('e+')) {
-    const num = Number(str);
-    if (!isNaN(num)) str = Math.round(num).toFixed(0);
-  }
-
-  // Preserve alphanumeric, dashes, dots, and slashes
-  return str.replace(/[^\w\-\/\.]/g, '').trim();
-}
-
-/**
- * Strictly identifies summary rows or table headers.
- * CRITICAL: NEVER filters out authentic Indonesian student names containing
- * substrings like "PRATAMA", "RATNA", "SURATMI", "WIRATAMA", "PURNAMA", "KUSUMA".
- */
-export function isSummaryOrHeaderRow(text: string): boolean {
-  if (!text) return true;
-  const s = text.trim().toLowerCase();
-  if (s.length < 2) return true;
-
-  // Exact matches for table headers
-  const headerExacts = [
-    'no',
-    'no.',
-    'nomor',
-    'nama',
-    'nama siswa',
-    'nama peserta didik',
-    'nama peserta',
-    'nama lengkap',
-    'nis',
-    'nisn',
-    'nis/nisn',
-    'nis / nisn',
-    'nisn/nis',
-    'kelas',
-    'fase',
-    'rombel',
-    'l/p',
-    'jk',
-    'jenis kelamin',
-  ];
-  if (headerExacts.includes(s)) return true;
-
-  // Summary row prefixes
-  const summaryPrefixes = [
-    'rata-rata',
-    'rata rata',
-    'nilai rata',
-    'rerata',
-    'total',
-    'jumlah',
-    'mengetahui',
-    'kepala sekolah',
-    'wali kelas',
-    'nip.',
-    'nip ',
-    'nbm.',
-    'nbm ',
-    'catatan:',
-    'keterangan:',
-  ];
-  if (summaryPrefixes.some((p) => s.startsWith(p))) return true;
-  if (s === 'rata' || s === 'mean') return true;
-
-  // Exact header titles
-  if (s.startsWith('nama peserta didik') || s.startsWith('nama siswa')) return true;
-
-  return false;
 }
 
 /**
@@ -533,6 +430,7 @@ export function parseLegerExcel(
         header: 1,
         defval: '',
       });
+      // Scan for header row
       let sCol = -1;
       let iCol = -1;
       let aCol = -1;
@@ -556,7 +454,7 @@ export function parseLegerExcel(
         const row = attRows[r];
         const rawName = String(row[nameCol] || '').trim().toUpperCase();
         const rawNis = String(row[nisCol] || '').trim();
-        if (rawName && !isSummaryOrHeaderRow(rawName)) {
+        if (rawName && !rawName.includes('TOTAL') && !rawName.includes('RATA')) {
           const sick = sCol !== -1 && !isNaN(parseInt(row[sCol])) ? parseInt(row[sCol]) : 0;
           const permitted = iCol !== -1 && !isNaN(parseInt(row[iCol])) ? parseInt(row[iCol]) : 0;
           const unexcused = aCol !== -1 && !isNaN(parseInt(row[aCol])) ? parseInt(row[aCol]) : 0;
@@ -608,7 +506,7 @@ export function parseLegerExcel(
         const row = extraRows[r];
         const rawName = String(row[nameCol] || '').trim().toUpperCase();
         const rawNis = String(row[nisCol] || '').trim();
-        if (rawName && !isSummaryOrHeaderRow(rawName)) {
+        if (rawName && !rawName.includes('TOTAL') && !rawName.includes('RATA')) {
           const extraName = ex1Col !== -1 ? String(row[ex1Col] || '').trim() : '';
           const extraPred = pred1Col !== -1 ? String(row[pred1Col] || '').trim() : 'Baik';
           const extraDesc = desc1Col !== -1 ? String(row[desc1Col] || '').trim() : '';
@@ -630,36 +528,11 @@ export function parseLegerExcel(
       }
     }
 
-    // 2. Main LEGER Sheet Selection (Smart sheet fallback)
+    // 2. Main LEGER Sheet
     let targetSheetName = wb.SheetNames[0];
-    const sheetMatches = wb.SheetNames.filter((s) => {
-      const low = s.toLowerCase();
-      return (
-        low.includes('leger') ||
-        low.includes('nilai') ||
-        low.includes('raport') ||
-        low.includes('rapor') ||
-        low.includes('rekap') ||
-        low.includes('daftar')
-      );
-    });
-
-    if (sheetMatches.length > 0) {
-      const legerMatch = sheetMatches.find((s) => s.toLowerCase().includes('leger'));
-      targetSheetName = legerMatch || sheetMatches[0];
-    } else if (wb.SheetNames.length > 1) {
-      // Pick sheet with maximum rows containing student-like data
-      let maxScore = -1;
-      wb.SheetNames.forEach((sName) => {
-        const sh = wb.Sheets[sName];
-        if (sh) {
-          const rws: any[][] = XLSX.utils.sheet_to_json(sh, { header: 1, defval: '' });
-          if (rws.length > maxScore) {
-            maxScore = rws.length;
-            targetSheetName = sName;
-          }
-        }
-      });
+    const legerSheet = wb.SheetNames.find((s) => s.toLowerCase().includes('leger'));
+    if (legerSheet) {
+      targetSheetName = legerSheet;
     }
 
     const ws = wb.Sheets[targetSheetName];
@@ -680,7 +553,7 @@ export function parseLegerExcel(
     }
 
     const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-    if (rows.length < 3) {
+    if (rows.length < 5) {
       return {
         success: false,
         studentsToUpsert: [],
@@ -699,15 +572,14 @@ export function parseLegerExcel(
     // Find header rows
     let subjectHeaderRowIdx = -1;
     let subColHeaderRowIdx = -1;
-    let identityHeaderRowIdx = -1;
+    let studentDataStartRowIdx = -1;
 
     for (let r = 0; r < Math.min(15, rows.length); r++) {
       const rowStr = rows[r].map((c) => String(c).toLowerCase()).join(' ');
       if (
         (rowStr.includes('pendidikan agama') ||
           rowStr.includes('matematika') ||
-          rowStr.includes('pancasila') ||
-          rowStr.includes('bahasa indonesia')) &&
+          rowStr.includes('pancasila')) &&
         subjectHeaderRowIdx === -1
       ) {
         subjectHeaderRowIdx = r;
@@ -721,19 +593,27 @@ export function parseLegerExcel(
         subColHeaderRowIdx = r;
       }
       if (
-        (rowStr.includes('nama') && (rowStr.includes('nis') || rowStr.includes('nisn'))) &&
-        identityHeaderRowIdx === -1
+        r > 3 &&
+        typeof rows[r][0] === 'number' &&
+        String(rows[r][1]).trim().length > 3 &&
+        studentDataStartRowIdx === -1
       ) {
-        identityHeaderRowIdx = r;
+        studentDataStartRowIdx = r;
       }
     }
 
-    if (subjectHeaderRowIdx === -1) subjectHeaderRowIdx = 0;
-    if (subColHeaderRowIdx === -1) subColHeaderRowIdx = subjectHeaderRowIdx + 1;
+    if (subColHeaderRowIdx === -1 && subjectHeaderRowIdx !== -1) {
+      subColHeaderRowIdx = subjectHeaderRowIdx + 1;
+    }
+    if (studentDataStartRowIdx === -1) {
+      studentDataStartRowIdx = Math.max(subColHeaderRowIdx + 1, 6);
+    }
 
-    // Standard Indonesian Leger format: Col 1 is Nama, Col 2 is NISN
-    let mainNameCol = 1;
-    let mainNisnCol = 2;
+    // Detect student identity columns: Nama, NIS, NISN
+    let mainNameCol = -1;
+    let mainNisCol = -1;
+    let mainNisnCol = -1;
+    let mainCombinedNisCol = -1;
 
     for (let r = 0; r < Math.min(10, rows.length); r++) {
       const headerRow = rows[r];
@@ -747,52 +627,29 @@ export function parseLegerExcel(
           !text.includes('kegiatan') &&
           !text.includes('ekstra')
         ) {
-          mainNameCol = c;
+          if (mainNameCol === -1) mainNameCol = c;
         }
-        if (
-          text === 'nisn' ||
-          text.includes('nisn') ||
-          text === 'n.i.s.n' ||
-          text.includes('no nisn') ||
-          text.includes('no. nisn') ||
-          text.includes('nomor nisn')
+        if (text.includes('nisn') || text === 'n.i.s.n' || text.includes('no nisn') || text.includes('no. nisn')) {
+          if (mainNisnCol === -1) mainNisnCol = c;
+        } else if (
+          text === 'nis' ||
+          text === 'n.i.s' ||
+          text.includes('no induk') ||
+          text.includes('nomor induk') ||
+          (text.includes('nis') && !text.includes('nisn'))
         ) {
-          mainNisnCol = c;
+          if (mainNisCol === -1) mainNisCol = c;
+        }
+        if (text.includes('nis/nisn') || text.includes('nis / nisn') || text.includes('nisn/nis')) {
+          if (mainCombinedNisCol === -1) mainCombinedNisCol = c;
         }
       });
     }
 
-    // Detect studentDataStartRowIdx: find the first row containing authentic student data
-    let studentDataStartRowIdx = -1;
-    for (let r = 0; r < Math.min(15, rows.length); r++) {
-      const row = rows[r];
-      if (!Array.isArray(row) || row.length < 2) continue;
-
-      const col0 = String(row[0] || '').trim();
-      const col1 = String(row[1] || '').trim();
-
-      const isStudentName = (txt: string) => {
-        return (
-          txt.length >= 2 &&
-          /[a-zA-Z]{2,}/.test(txt) &&
-          !isSummaryOrHeaderRow(txt) &&
-          !/^\d+$/.test(txt)
-        );
-      };
-
-      if ((col0 === '1' || col0 === '01') && isStudentName(col1)) {
-        studentDataStartRowIdx = r;
-        break;
-      }
-      if (r > subColHeaderRowIdx && isStudentName(col1)) {
-        studentDataStartRowIdx = r;
-        break;
-      }
-    }
-
-    if (studentDataStartRowIdx === -1) {
-      studentDataStartRowIdx = Math.max(subColHeaderRowIdx + 1, 2);
-    }
+    // Default fallbacks if header names were absent or merged
+    if (mainNameCol === -1) mainNameCol = 1;
+    if (mainNisCol === -1) mainNisCol = 2;
+    if (mainNisnCol === -1) mainNisnCol = 3;
 
     // Map column indices to subjects
     const activeSubjects = existingSubjects.filter((s) => s.isActive);
@@ -807,8 +664,7 @@ export function parseLegerExcel(
 
     if (subjectHeaderRowIdx !== -1) {
       const subjRow = rows[subjectHeaderRowIdx];
-      const searchStartCol = Math.max(mainNameCol, mainNisnCol) + 1;
-      for (let c = searchStartCol; c < subjRow.length; c++) {
+      for (let c = 5; c < subjRow.length; c++) {
         const headerText = String(subjRow[c] || '').trim();
         if (headerText) {
           const match = activeSubjects.find((s) => {
@@ -860,13 +716,6 @@ export function parseLegerExcel(
       subjectMappings.length = 0;
       detectedSubjectNames.length = 0;
       let startCol = 5;
-      if (subColHeaderRowIdx !== -1 && rows[subColHeaderRowIdx]) {
-        const foundIdx = rows[subColHeaderRowIdx].findIndex((cell: any) => {
-          const t = String(cell || '').trim().toLowerCase();
-          return t === 'formatif' || t === 'f' || t.startsWith('formatif');
-        });
-        if (foundIdx !== -1) startCol = foundIdx;
-      }
       activeSubjects.forEach((sub) => {
         if (startCol + 2 < (rows[studentDataStartRowIdx]?.length || 100)) {
           subjectMappings.push({
@@ -1013,47 +862,86 @@ export function parseLegerExcel(
       let rawName = String(row[mainNameCol] || '').trim();
       if (!rawName || /^\d+$/.test(rawName)) {
         // Fallback: look for cell containing student name
-        for (let c = 0; c <= Math.min(6, row.length - 1); c++) {
-          if (c === mainNisnCol) continue;
+        for (let c = 1; c <= Math.min(4, row.length - 1); c++) {
           const val = String(row[c] || '').trim();
-          if (val && !/^\d+$/.test(val) && val.length >= 2 && !isSummaryOrHeaderRow(val)) {
+          if (val && !/^\d+$/.test(val) && val.length > 2 && !val.includes('TOTAL') && !val.includes('RATA')) {
             rawName = val;
             break;
           }
         }
       }
 
-      // Filter out summary/header rows without false positives for names like Pratama, Ratna, etc.
-      if (!rawName || isSummaryOrHeaderRow(rawName)) {
+      if (
+        !rawName ||
+        rawName.toLowerCase().includes('rata') ||
+        rawName.toLowerCase().includes('total') ||
+        rawName.toLowerCase().includes('mengetahui') ||
+        rawName.toLowerCase().startsWith('nip')
+      ) {
         continue;
       }
 
       const stName = rawName.toUpperCase();
-      const studentIdx = r - studentDataStartRowIdx;
 
-      // Extract NISN from Col 2 or mainNisnCol
-      let rawNisn = String(row[mainNisnCol] !== undefined ? row[mainNisnCol] : (row[2] || '')).trim();
-      let stNisn = parseNisn(rawNisn);
+      // Extract NIS & NISN smartly
+      let rawNis = String(row[mainNisCol] || '').trim();
+      let rawNisn = String(row[mainNisnCol] || '').trim();
 
-      // Fallback: check adjacent cells for 10-digit NISN if not found in col 2
-      if (!stNisn || stNisn.length < 8) {
-        for (let c = 1; c <= Math.min(4, row.length - 1); c++) {
+      // If combined NIS / NISN column was present
+      if (mainCombinedNisCol !== -1 && row[mainCombinedNisCol]) {
+        const comb = String(row[mainCombinedNisCol]).trim();
+        if (comb.includes('/')) {
+          const parts = comb.split('/').map((p) => p.trim());
+          if (parts[0]) rawNis = parts[0];
+          if (parts[1]) rawNisn = parts[1];
+        }
+      }
+
+      // Check if rawNis was swapped with rawNisn (NISN is 10 digits, NIS is typically 4-6 digits)
+      if (rawNis.replace(/\D/g, '').length >= 9 && rawNisn.replace(/\D/g, '').length < 9) {
+        const temp = rawNis;
+        rawNis = rawNisn;
+        rawNisn = temp;
+      }
+
+      // If NISN is still not found, scan row columns 1 to 6 for a 10-digit number
+      if (!rawNisn || rawNisn.replace(/\D/g, '').length < 8) {
+        for (let c = 1; c <= Math.min(6, row.length - 1); c++) {
           if (c === mainNameCol) continue;
-          const cand = parseNisn(row[c]);
-          if (cand.length === 10) {
-            stNisn = cand;
+          let cellStr = String(row[c] || '').trim();
+          if (cellStr.includes('e+') || cellStr.includes('E+')) {
+            const num = Number(cellStr);
+            if (!isNaN(num)) cellStr = num.toFixed(0);
+          }
+          const digits = cellStr.replace(/\D/g, '');
+          if (digits.length >= 8 && digits.length <= 10) {
+            rawNisn = digits.padStart(10, '0');
             break;
           }
         }
       }
 
-      // Consistent fallback NISN if file has none
-      if (!stNisn) {
-        const seq = String(studentIdx + 1).padStart(2, '0');
-        stNisn = `008451${seq}${studentIdx % 10}`;
+      // Clean NIS digits
+      let stNis = rawNis.replace(/[^\w-]/g, '').trim();
+      if (!stNis) {
+        stNis = String(5420 + (r - studentDataStartRowIdx + 1));
       }
 
-      const stNis = String(5420 + studentIdx + 1);
+      // Clean and ensure 10-digit standard Indonesian NISN
+      let stNisn = '';
+      if (rawNisn) {
+        let cleanDigits = rawNisn.replace(/\D/g, '');
+        if (cleanDigits.length >= 8 && cleanDigits.length <= 10) {
+          stNisn = cleanDigits.padStart(10, '0');
+        } else {
+          stNisn = rawNisn.trim();
+        }
+      }
+      // If NISN was completely missing in file, generate consistent valid NISN based on NIS
+      if (!stNisn) {
+        const seq = String(r - studentDataStartRowIdx + 1).padStart(2, '0');
+        stNisn = `008451${seq}${(r - studentDataStartRowIdx) % 10}`;
+      }
 
       // Detect wali kelas and date from row if available
       if (mainWaliCol !== -1 && row[mainWaliCol] && !detectedWaliKelasVal) {
@@ -1216,30 +1104,8 @@ export function parseExcelFile(
   errors: string[];
 } {
   const wb = XLSX.read(fileData, { type: 'array' });
-  let targetSheetName = wb.SheetNames[0];
-
-  // Pick sheet matching keywords or with max rows
-  const matchingSheet = wb.SheetNames.find((s) => {
-    const low = s.toLowerCase();
-    return low.includes('leger') || low.includes('nilai') || low.includes('siswa') || low.includes('rapor') || low.includes('rekap');
-  });
-  if (matchingSheet) {
-    targetSheetName = matchingSheet;
-  } else if (wb.SheetNames.length > 1) {
-    let maxLen = -1;
-    wb.SheetNames.forEach((s) => {
-      const sh = wb.Sheets[s];
-      if (sh) {
-        const rws: any[][] = XLSX.utils.sheet_to_json(sh, { header: 1, defval: '' });
-        if (rws.length > maxLen) {
-          maxLen = rws.length;
-          targetSheetName = s;
-        }
-      }
-    });
-  }
-
-  const sheet = wb.Sheets[targetSheetName];
+  const firstSheetName = wb.SheetNames[0];
+  const sheet = wb.Sheets[firstSheetName];
 
   if (!sheet) {
     return { type: 'unknown', data: [], headers: [], errors: ['File Excel tidak memiliki lembar kerja (sheet).'] };
