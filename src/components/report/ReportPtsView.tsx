@@ -112,7 +112,10 @@ export const ReportPtsView: React.FC = () => {
     schoolProfile.headmasterSignatureHeight || printSettings.headmasterSignatureHeight || 85;
   const currentSigWidth =
     schoolProfile.headmasterSignatureWidth || printSettings.headmasterSignatureWidth || 230;
-  const docFontSize = printSettings.documentFontSizePt || 8.5;
+  const docFontSize = printSettings.documentFontSizePt || (printSettings.paperSize === 'F4' ? 9.0 : 8.5);
+  const isF4 = printSettings.paperSize === 'F4';
+  const paperName = isF4 ? 'F4 / Folio' : 'A4';
+  const paperDimensionsText = isF4 ? '215 × 330 mm' : '210 × 297 mm';
 
   // Manual Kop / Header Logo Layout measurements
   const reportLogoPos = printSettings.reportHeaderLogoPosition || 'left';
@@ -228,13 +231,13 @@ export const ReportPtsView: React.FC = () => {
       colWidthSubject: 195,
       colWidthFormatif: 56,
       colWidthSumatif: 56,
-      homeroomSignatureSpaceHeight: 52,
-      parentSignatureSpaceHeight: 46,
+      homeroomSignatureSpaceHeight: isF4 ? 58 : 52,
+      parentSignatureSpaceHeight: isF4 ? 50 : 46,
       homeroomSignatureRightOffset: 0,
       identityRightOffset: 0,
-      headmasterSignatureHeight: 85,
+      headmasterSignatureHeight: isF4 ? 90 : 85,
       headmasterSignatureWidth: 230,
-      documentFontSizePt: 8.5,
+      documentFontSizePt: isF4 ? 9.0 : 8.5,
       reportHeaderLogoPosition: 'left',
       reportHeaderLogoSize: 52,
       reportHeaderLogoOffsetX: 0,
@@ -243,7 +246,7 @@ export const ReportPtsView: React.FC = () => {
       reportHeaderCustomSubtitle: '',
     });
     updateSchoolProfile({
-      headmasterSignatureHeight: 85,
+      headmasterSignatureHeight: isF4 ? 90 : 85,
       headmasterSignatureWidth: 230,
     });
   };
@@ -353,11 +356,17 @@ export const ReportPtsView: React.FC = () => {
     return (
       <div
         key={student.id}
-        className={`bg-white px-7 py-3 sm:px-8 sm:py-3.5 max-w-[210mm] mx-auto shadow-sm border border-slate-200 text-black leading-tight font-document printable-document box-border overflow-hidden print:border-none print:shadow-none print:m-0 print:p-0 ${
+        className={`bg-white ${
+          isF4
+            ? 'px-7 py-3.5 sm:px-8 sm:py-4 max-w-[215mm]'
+            : 'px-7 py-3 sm:px-8 sm:py-3.5 max-w-[210mm]'
+        } mx-auto shadow-sm border border-slate-200 text-black leading-tight font-document printable-document ${
+          isF4 ? 'paper-f4' : 'paper-a4'
+        } box-border overflow-hidden print:border-none print:shadow-none print:m-0 print:p-0 ${
           isBatch ? 'page-break-after mb-8' : ''
         }`}
         style={{
-          maxHeight: '284mm',
+          maxHeight: isF4 ? '322mm' : '284mm',
           fontSize: `${docFontSize}pt`,
           backgroundColor: '#ffffff',
         }}
@@ -368,7 +377,7 @@ export const ReportPtsView: React.FC = () => {
             style={{
               borderBottomWidth: `${reportBorderWidth}px`,
             }}
-            className={`border-black pb-1 mb-1.5 text-center ${reportBorderWidth > 0 ? 'border-b' : ''}`}
+            className={`border-black ${isF4 ? 'pb-1.5 mb-2' : 'pb-1 mb-1.5'} text-center ${reportBorderWidth > 0 ? 'border-b' : ''}`}
           >
             <div
               className="flex justify-center mb-1"
@@ -412,7 +421,7 @@ export const ReportPtsView: React.FC = () => {
             style={{
               borderBottomWidth: `${reportBorderWidth}px`,
             }}
-            className={`flex items-center justify-between border-black pb-1 mb-1.5 ${
+            className={`flex items-center justify-between border-black ${isF4 ? 'pb-1.5 mb-2' : 'pb-1 mb-1.5'} ${
               reportBorderWidth > 0 ? 'border-b' : ''
             }`}
           >
@@ -515,7 +524,7 @@ export const ReportPtsView: React.FC = () => {
         {/* Identity Grid (Exact match with reference sheet - Semester, Kelas, Fase diposisikan rapat ke kanan) */}
         <div
           style={{ fontSize: `${(docFontSize * 0.94).toFixed(1)}pt` }}
-          className="flex justify-between items-start mb-1.5 pb-1 border-b border-black leading-normal"
+          className={`flex justify-between items-start ${isF4 ? 'mb-2 pb-1.5' : 'mb-1.5 pb-1'} border-b border-black leading-normal`}
         >
           {/* Left Column: Identitas Siswa */}
           <table className="w-auto">
@@ -593,7 +602,7 @@ export const ReportPtsView: React.FC = () => {
         </div>
 
         {/* Main Grades Table with Manual Column Width Customization */}
-        <div className="mb-1.5">
+        <div className={isF4 ? 'mb-2' : 'mb-1.5'}>
           <table
             style={{ fontSize: `${(docFontSize * 0.92).toFixed(1)}pt` }}
             className="w-full border-collapse border border-black report-table table-fixed"
@@ -602,29 +611,29 @@ export const ReportPtsView: React.FC = () => {
               <tr className="bg-slate-100 text-center font-bold">
                 <th
                   style={{ width: `${colNo}px` }}
-                  className="border border-black py-[2px] px-1 text-center"
+                  className={`border border-black ${isF4 ? 'py-[2.5px]' : 'py-[2px]'} px-1 text-center`}
                 >
                   NO
                 </th>
                 <th
                   style={{ width: `${colSubj}px` }}
-                  className="border border-black py-[2px] px-2 text-left"
+                  className={`border border-black ${isF4 ? 'py-[2.5px]' : 'py-[2px]'} px-2 text-left`}
                 >
                   MATA PELAJARAN
                 </th>
                 <th
                   style={{ width: `${colForm}px` }}
-                  className="border border-black py-[2px] px-1 text-center"
+                  className={`border border-black ${isF4 ? 'py-[2.5px]' : 'py-[2px]'} px-1 text-center`}
                 >
                   NILAI FORMATIF
                 </th>
                 <th
                   style={{ width: `${colSum}px` }}
-                  className="border border-black py-[2px] px-1 text-center"
+                  className={`border border-black ${isF4 ? 'py-[2.5px]' : 'py-[2px]'} px-1 text-center`}
                 >
                   NILAI SUMATIF
                 </th>
-                <th className="border border-black py-[2px] px-2 text-left">
+                <th className={`border border-black ${isF4 ? 'py-[2.5px]' : 'py-[2px]'} px-2 text-left`}>
                   CAPAIAN KOMPETENSI
                 </th>
               </tr>
@@ -640,7 +649,7 @@ export const ReportPtsView: React.FC = () => {
                       <td
                         colSpan={5}
                         style={{ fontSize: `${(docFontSize * 0.88).toFixed(1)}pt` }}
-                        className="border border-black py-[1.5px] px-2 text-left uppercase tracking-wide"
+                        className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-2 text-left uppercase tracking-wide`}
                       >
                         {group.title}
                       </td>
@@ -673,13 +682,13 @@ export const ReportPtsView: React.FC = () => {
                         <tr key={subject.id}>
                           <td
                             style={{ width: `${colNo}px` }}
-                            className="border border-black py-[1.5px] px-1 text-center font-mono"
+                            className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1 text-center font-mono`}
                           >
                             {subIdx + 1}
                           </td>
                           <td
                             style={{ width: `${colSubj}px` }}
-                            className="border border-black py-[1.5px] px-2 font-semibold leading-tight group relative"
+                            className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-2 font-semibold leading-tight group relative`}
                             title={subject.name}
                           >
                             {editingSubjectId === subject.id && !isBatch ? (
@@ -734,19 +743,19 @@ export const ReportPtsView: React.FC = () => {
                           </td>
                           <td
                             style={{ width: `${colForm}px` }}
-                            className="border border-black py-[1.5px] px-1 text-center font-mono font-medium"
+                            className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1 text-center font-mono font-medium`}
                           >
                             {formativeVal}
                           </td>
                           <td
                             style={{ width: `${colSum}px` }}
-                            className="border border-black py-[1.5px] px-1 text-center font-mono font-bold"
+                            className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1 text-center font-mono font-bold`}
                           >
                             {summativeVal}
                           </td>
                           <td
                             style={{ fontSize: `${(docFontSize * 0.84).toFixed(1)}pt` }}
-                            className="border border-black py-[1.5px] px-2 leading-tight"
+                            className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-2 leading-tight`}
                           >
                             {desc}
                           </td>
@@ -761,7 +770,7 @@ export const ReportPtsView: React.FC = () => {
         </div>
 
         {/* Ekstrakurikuler & Ketidakhadiran Tables (Arranged compactly side-by-side) */}
-        <div className="grid grid-cols-12 gap-2.5 mb-1.5">
+        <div className={`grid grid-cols-12 gap-2.5 ${isF4 ? 'mb-2' : 'mb-1.5'}`}>
           {/* Ekstrakurikuler Table (col-span-7) */}
           <div className="col-span-7">
             <table
@@ -770,37 +779,37 @@ export const ReportPtsView: React.FC = () => {
             >
               <thead>
                 <tr className="bg-slate-50 font-bold">
-                  <th className="border border-black py-[1.5px] px-1 w-6 text-center">No</th>
-                  <th className="border border-black py-[1.5px] px-2 text-left w-40">
+                  <th className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1 w-6 text-center`}>No</th>
+                  <th className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-2 text-left w-40`}>
                     Ekstrakurikuler
                   </th>
-                  <th className="border border-black py-[1.5px] px-1.5 text-center w-14">
+                  <th className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1.5 text-center w-14`}>
                     Predikat
                   </th>
-                  <th className="border border-black py-[1.5px] px-2 text-left">Keterangan</th>
+                  <th className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-2 text-left`}>Keterangan</th>
                 </tr>
               </thead>
               <tbody>
                 {studentExtras.length === 0 ? (
                   <tr>
-                    <td className="border border-black py-[1.5px] px-1 text-center font-mono">1</td>
-                    <td className="border border-black py-[1.5px] px-2">—</td>
-                    <td className="border border-black py-[1.5px] px-1 text-center">—</td>
-                    <td className="border border-black py-[1.5px] px-2 text-[0.85em]">—</td>
+                    <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1 text-center font-mono`}>1</td>
+                    <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-2`}>—</td>
+                    <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1 text-center`}>—</td>
+                    <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-2 text-[0.85em]`}>—</td>
                   </tr>
                 ) : (
                   studentExtras.slice(0, 2).map((extra, idx) => (
                     <tr key={extra.id || idx}>
-                      <td className="border border-black py-[1.5px] px-1 text-center font-mono">
+                      <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1 text-center font-mono`}>
                         {idx + 1}
                       </td>
-                      <td className="border border-black py-[1.5px] px-2 font-semibold">
+                      <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-2 font-semibold`}>
                         {extra.name}
                       </td>
-                      <td className="border border-black py-[1.5px] px-1 text-center font-medium">
+                      <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1 text-center font-medium`}>
                         {extra.predicate}
                       </td>
-                      <td className="border border-black py-[1.5px] px-2 text-[0.85em] leading-tight">
+                      <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-2 text-[0.85em] leading-tight`}>
                         {extra.description}
                       </td>
                     </tr>
@@ -818,32 +827,32 @@ export const ReportPtsView: React.FC = () => {
             >
               <thead>
                 <tr className="bg-slate-50 font-bold">
-                  <th colSpan={3} className="border border-black py-[1.5px] px-2 text-left">
+                  <th colSpan={3} className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-2 text-left`}>
                     Ketidakhadiran
                   </th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className="border border-black py-[1.5px] px-2 w-32">Sakit</td>
-                  <td className="border border-black py-[1.5px] px-1 text-center font-mono w-10">
+                  <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-2 w-32`}>Sakit</td>
+                  <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1 text-center font-mono w-10`}>
                     {attendance.sick}
                   </td>
-                  <td className="border border-black py-[1.5px] px-1 text-center w-12">hari</td>
+                  <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1 text-center w-12`}>hari</td>
                 </tr>
                 <tr>
-                  <td className="border border-black py-[1.5px] px-2">Izin</td>
-                  <td className="border border-black py-[1.5px] px-1 text-center font-mono">
+                  <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-2`}>Izin</td>
+                  <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1 text-center font-mono`}>
                     {attendance.permitted}
                   </td>
-                  <td className="border border-black py-[1.5px] px-1 text-center">hari</td>
+                  <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1 text-center`}>hari</td>
                 </tr>
                 <tr>
-                  <td className="border border-black py-[1.5px] px-2">Tanpa Keterangan</td>
-                  <td className="border border-black py-[1.5px] px-1 text-center font-mono">
+                  <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-2`}>Tanpa Keterangan</td>
+                  <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1 text-center font-mono`}>
                     {attendance.unexcused}
                   </td>
-                  <td className="border border-black py-[1.5px] px-1 text-center">hari</td>
+                  <td className={`border border-black ${isF4 ? 'py-[2px]' : 'py-[1.5px]'} px-1 text-center`}>hari</td>
                 </tr>
               </tbody>
             </table>
@@ -851,7 +860,7 @@ export const ReportPtsView: React.FC = () => {
         </div>
 
         {/* Signatures Area (Exact layout: Wali Kelas, Orang Tua, and Mengetahui Kepala Sekolah) */}
-        <div className="avoid-break mt-1">
+        <div className={`avoid-break ${isF4 ? 'mt-1.5' : 'mt-1'}`}>
           {/* Top Row: Parent & Homeroom Teacher (Wali Kelas diposisikan rapat ke kanan dengan space leluasa) */}
           <div
             style={{ fontSize: `${(docFontSize * 0.98).toFixed(1)}pt` }}
@@ -861,7 +870,7 @@ export const ReportPtsView: React.FC = () => {
             <div className="text-left">
               <div className="text-slate-800">Orang Tua/wali Peserta Didik</div>
               <div
-                style={{ height: `${parentSigSpace}px` }}
+                style={{ height: `${isF4 ? parentSigSpace + 4 : parentSigSpace}px` }}
                 className="flex items-end"
               >
                 <div className="w-40 border-b border-black"></div>
@@ -880,7 +889,7 @@ export const ReportPtsView: React.FC = () => {
               </div>
               <div className="mt-0.5 font-medium">Wali Kelas</div>
               <div
-                style={{ height: `${homeroomSigSpace}px` }}
+                style={{ height: `${isF4 ? homeroomSigSpace + 6 : homeroomSigSpace}px` }}
                 className="flex items-end"
               >
                 <div>
@@ -925,7 +934,7 @@ export const ReportPtsView: React.FC = () => {
               {/* Headmaster signature image with compact match and prominent presence */}
               <div
                 className="flex items-center justify-center my-0.5 overflow-hidden"
-                style={{ height: `${sigHeight + 2}px` }}
+                style={{ height: `${isF4 ? sigHeight + 4 : sigHeight + 2}px` }}
               >
                 <img
                   src={schoolProfile.headmasterSignatureUrl}
@@ -959,6 +968,20 @@ export const ReportPtsView: React.FC = () => {
 
   return (
     <div className="space-y-4 max-w-6xl mx-auto bg-white print:bg-white print:p-0 print:m-0 print:max-w-none">
+      {/* Dynamic Print CSS for chosen Paper Size (A4 vs F4 Satu Halaman Penuh) */}
+      <style>{`
+        @media print {
+          @page {
+            size: ${isF4 ? '215mm 330mm portrait' : '210mm 297mm portrait'};
+            margin: 4mm 6mm 4mm 6mm;
+          }
+          .printable-document {
+            max-width: ${isF4 ? '215mm' : '210mm'} !important;
+            max-height: ${isF4 ? '322mm' : '288mm'} !important;
+          }
+        }
+      `}</style>
+
       {/* Top Controls Bar 1: Student Navigation & Main Print Triggers */}
       <div className="no-print bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
         {/* Navigation & Student Selector */}
@@ -967,7 +990,7 @@ export const ReportPtsView: React.FC = () => {
             <button
               onClick={prevStudent}
               disabled={activeIndex <= 0}
-              className="p-1.5 text-slate-700 hover:text-blue-900 disabled:opacity-30 rounded-lg hover:bg-white transition-colors"
+              className="p-1.5 text-slate-700 hover:text-blue-900 disabled:opacity-30 rounded-lg hover:bg-white transition-colors cursor-pointer"
               title="Siswa Sebelumnya"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -978,7 +1001,7 @@ export const ReportPtsView: React.FC = () => {
             <button
               onClick={nextStudent}
               disabled={activeIndex >= classStudents.length - 1}
-              className="p-1.5 text-slate-700 hover:text-blue-900 disabled:opacity-30 rounded-lg hover:bg-white transition-colors"
+              className="p-1.5 text-slate-700 hover:text-blue-900 disabled:opacity-30 rounded-lg hover:bg-white transition-colors cursor-pointer"
               title="Siswa Berikutnya"
             >
               <ChevronRight className="w-4 h-4" />
@@ -1008,20 +1031,20 @@ export const ReportPtsView: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => handlePrint(false)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm transition-all"
-            title="Cetak rapor siswa yang sedang dipilih ke 1 halaman A4"
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm transition-all cursor-pointer"
+            title={`Cetak rapor siswa yang sedang dipilih ke 1 halaman ${paperName} (${paperDimensionsText})`}
           >
             <Printer className="w-4 h-4" />
-            <span>Cetak Siswa Ini (1 Hal)</span>
+            <span>Cetak Siswa Ini (1 Hal {isF4 ? 'F4' : 'A4'})</span>
           </button>
 
           <button
             onClick={() => handlePrint(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm transition-all"
-            title="Cetak seluruh rapor siswa dalam rombel ini (masing-masing 1 halaman A4)"
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm transition-all cursor-pointer"
+            title={`Cetak seluruh rapor siswa dalam rombel ini (masing-masing 1 halaman penuh ${paperName})`}
           >
             <Layers className="w-4 h-4" />
-            <span>Cetak Semua ({classStudents.length} Siswa)</span>
+            <span>Cetak Semua ({classStudents.length} Siswa, 1 Hal {isF4 ? 'F4' : 'A4'})</span>
           </button>
 
           <button
@@ -1029,7 +1052,7 @@ export const ReportPtsView: React.FC = () => {
               setActiveLayoutTab('header_kop');
               setShowLayoutEditor(true);
             }}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${
               showLayoutEditor && activeLayoutTab === 'header_kop'
                 ? 'bg-blue-700 text-white border-blue-800 shadow-sm'
                 : 'bg-blue-50 text-blue-900 border-blue-200 hover:bg-blue-100'
@@ -1042,7 +1065,7 @@ export const ReportPtsView: React.FC = () => {
 
           <button
             onClick={() => setShowSubjectNameModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-xl text-xs sm:text-sm shadow-2xs transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-xl text-xs sm:text-sm shadow-2xs transition-all cursor-pointer"
             title="Edit manual nama mata pelajaran yang tampil pada tabel raport"
           >
             <FileSignature className="w-4 h-4 text-amber-700" />
@@ -1051,7 +1074,7 @@ export const ReportPtsView: React.FC = () => {
 
           <button
             onClick={() => setShowLayoutEditor(!showLayoutEditor)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${
               showLayoutEditor
                 ? 'bg-indigo-700 text-white border-indigo-800 shadow-sm'
                 : 'bg-indigo-50 text-indigo-800 border-indigo-200 hover:bg-indigo-100'
@@ -1069,7 +1092,7 @@ export const ReportPtsView: React.FC = () => {
 
           <button
             onClick={() => setActiveMenu('pengaturan_cetak')}
-            className="p-2 text-slate-600 hover:text-blue-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+            className="p-2 text-slate-600 hover:text-blue-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
             title="Pengaturan Cetak Lanjutan"
           >
             <Settings className="w-4 h-4" />
@@ -1077,9 +1100,60 @@ export const ReportPtsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Top Controls Bar 2: Font Size Adjustment & Layout Trigger */}
+      {/* Top Controls Bar 2: Paper Size Selection & Font Size Adjustment */}
       <div className="no-print bg-white p-3 sm:p-4 rounded-2xl border border-blue-200 shadow-xs space-y-3">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          {/* Section 0: Pilihan Ukuran Kertas Dokumen Siap Cetak (A4 vs F4) */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+              <FileText className="w-3.5 h-3.5 text-blue-600" />
+              <span>Ukuran Kertas:</span>
+            </span>
+
+            <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  updatePrintSettings({ paperSize: 'A4', documentFontSizePt: 8.5 });
+                  showToast('info', 'Format dokumen diubah ke A4 (210 × 297 mm) Pas 1 Halaman.');
+                }}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                  !isF4
+                    ? 'bg-blue-700 text-white shadow-2xs'
+                    : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                }`}
+                title="Format kertas A4 (210 x 297 mm) standar resmi pas 1 lembar"
+              >
+                <span>A4 (210 × 297 mm)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  updatePrintSettings({ paperSize: 'F4', documentFontSizePt: 9.0 });
+                  showToast('success', 'Format dokumen diubah ke F4 / Folio (215 × 330 mm) Satu Halaman Penuh.');
+                }}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  isF4
+                    ? 'bg-emerald-700 text-white shadow-2xs'
+                    : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                }`}
+                title="Format kertas F4 / Folio (215 x 330 mm) satu halaman penuh dengan ruang vertikal lebih leluasa"
+              >
+                <span>F4 / Folio (215 × 330 mm)</span>
+                <span
+                  className={`text-[9px] px-1.5 py-0.2 rounded font-extrabold uppercase ${
+                    isF4
+                      ? 'bg-emerald-800 text-emerald-100 ring-1 ring-emerald-500/50'
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}
+                >
+                  1 Hal Penuh
+                </span>
+              </button>
+            </div>
+          </div>
+
           {/* Section 1: Pengaturan Ukuran Huruf Cetak */}
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
@@ -1089,17 +1163,24 @@ export const ReportPtsView: React.FC = () => {
 
             {/* Quick Presets */}
             <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs">
-              {[
-                { label: '8.0 pt', val: 8.0 },
-                { label: '8.5 pt (Pas 1 Hal)', val: 8.5 },
-                { label: '9.0 pt', val: 9.0 },
-                { label: '9.5 pt', val: 9.5 },
-                { label: '10.0 pt', val: 10.0 },
-              ].map((opt) => (
+              {(isF4
+                ? [
+                    { label: '8.5 pt', val: 8.5 },
+                    { label: '9.0 pt (Pas 1 Hal F4)', val: 9.0 },
+                    { label: '9.5 pt (Leluasa)', val: 9.5 },
+                    { label: '10.0 pt', val: 10.0 },
+                  ]
+                : [
+                    { label: '8.0 pt', val: 8.0 },
+                    { label: '8.5 pt (Pas 1 Hal A4)', val: 8.5 },
+                    { label: '9.0 pt', val: 9.0 },
+                    { label: '9.5 pt', val: 9.5 },
+                  ]
+              ).map((opt) => (
                 <button
                   key={opt.val}
                   onClick={() => handleSetFontSize(opt.val)}
-                  className={`px-2 py-1 rounded-lg font-bold transition-all ${
+                  className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
                     docFontSize === opt.val
                       ? 'bg-blue-700 text-white shadow-2xs'
                       : 'text-slate-600 hover:bg-white hover:text-slate-900'
@@ -1114,7 +1195,7 @@ export const ReportPtsView: React.FC = () => {
             <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1">
               <button
                 onClick={() => handleAdjustFontSize(-0.2)}
-                className="w-5 h-5 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 rounded"
+                className="w-5 h-5 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 rounded cursor-pointer"
                 title="Kecilkan Huruf"
               >
                 -
@@ -1124,7 +1205,7 @@ export const ReportPtsView: React.FC = () => {
               </span>
               <button
                 onClick={() => handleAdjustFontSize(0.2)}
-                className="w-5 h-5 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 rounded"
+                className="w-5 h-5 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 rounded cursor-pointer"
                 title="Besarkan Huruf"
               >
                 +
@@ -1135,7 +1216,7 @@ export const ReportPtsView: React.FC = () => {
           {/* Section 2: Quick Status & Layout Trigger */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-slate-600 font-medium">
-              Logo Kop: <b className="font-mono text-blue-700 uppercase">{reportLogoPos} ({reportLogoSize}px)</b>
+              Kertas: <b className={`font-mono ${isF4 ? 'text-emerald-700' : 'text-blue-700'}`}>{paperName}</b>
             </span>
             <span className="text-slate-300">•</span>
             <span className="text-xs text-slate-600 font-medium">
@@ -1143,7 +1224,7 @@ export const ReportPtsView: React.FC = () => {
             </span>
             <button
               onClick={() => setShowLayoutEditor(!showLayoutEditor)}
-              className="text-xs font-bold text-indigo-700 hover:text-indigo-900 underline ml-1"
+              className="text-xs font-bold text-indigo-700 hover:text-indigo-900 underline ml-1 cursor-pointer"
             >
               {showLayoutEditor ? 'Tutup Panel Layout' : 'Atur Ukuran Manual...'}
             </button>
@@ -1827,17 +1908,38 @@ export const ReportPtsView: React.FC = () => {
         )}
       </div>
 
-      {/* Guaranteed 1-Page A4 Notice */}
-      <div className="no-print bg-emerald-50/90 border border-emerald-300 p-2.5 sm:p-3 rounded-xl flex items-center justify-between text-xs text-emerald-950">
+      {/* Guaranteed 1-Page A4 / F4 Notice */}
+      <div
+        className={`no-print ${
+          isF4
+            ? 'bg-emerald-50/95 border-emerald-300 text-emerald-950'
+            : 'bg-blue-50/95 border-blue-300 text-blue-950'
+        } border p-2.5 sm:p-3 rounded-xl flex items-center justify-between text-xs`}
+      >
         <div className="flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+          <CheckCircle2
+            className={`w-4 h-4 ${isF4 ? 'text-emerald-700' : 'text-blue-700'} shrink-0`}
+          />
           <span>
-            <b>Garansi 1 Halaman A4 Aktif:</b> Tata letak rapor (identitas, 14 mata pelajaran termasuk Ciri Khusus/ISMUBA,
-            ekstrakurikuler, ketidakhadiran, ruang tanda tangan wali kelas & kepala sekolah) telah dikunci agar dicetak tepat satu lembar A4.
+            {isF4 ? (
+              <>
+                <b>Garansi 1 Halaman Penuh F4 / Folio Aktif:</b> Dokumen dioptimalkan untuk ukuran kertas F4 (215 × 330 mm) satu halaman penuh. Tata letak rapor (identitas, 14 mata pelajaran termasuk Ciri Khusus/ISMUBA, ekstrakurikuler, ketidakhadiran, ruang TTD wali kelas & kepala sekolah) tertata proporsional dan siap cetak tepat satu lembar penuh tanpa terpotong ke lembar kedua.
+              </>
+            ) : (
+              <>
+                <b>Garansi 1 Halaman A4 Aktif:</b> Tata letak rapor (identitas, 14 mata pelajaran termasuk Ciri Khusus/ISMUBA, ekstrakurikuler, ketidakhadiran, ruang tanda tangan wali kelas & kepala sekolah) telah dikunci agar dicetak tepat satu lembar A4 (210 × 297 mm).
+              </>
+            )}
           </span>
         </div>
-        <span className="hidden md:inline-block font-mono bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded text-[11px] shrink-0">
-          Strict 1-Page Ready
+        <span
+          className={`hidden md:inline-block font-mono ${
+            isF4
+              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+              : 'bg-blue-100 text-blue-800 border-blue-300'
+          } border font-bold px-2 py-0.5 rounded text-[11px] shrink-0`}
+        >
+          {isF4 ? 'F4 (215×330mm) 1-Page Ready' : 'A4 (210×297mm) 1-Page Ready'}
         </span>
       </div>
 

@@ -40,8 +40,23 @@
     margin: 4mm 6mm 4mm 6mm;
   }
 
+  @page page-f4 {
+    size: 215mm 330mm portrait;
+    margin: 4mm 6mm 4mm 6mm;
+  }
+
+  @page page-a4 {
+    size: 210mm 297mm portrait;
+    margin: 4mm 6mm 4mm 6mm;
+  }
+
   @page landscape-ledger {
     size: A4 landscape;
+    margin: 4mm 6mm 4mm 6mm;
+  }
+
+  @page landscape-ledger-f4 {
+    size: 330mm 215mm landscape;
     margin: 4mm 6mm 4mm 6mm;
   }
 
@@ -87,6 +102,20 @@
     box-sizing: border-box !important;
   }
 
+  /* F4 Folio Specific Print Rules (215 x 330 mm Satu Halaman Penuh) */
+  .printable-document.paper-f4 {
+    page: page-f4 !important;
+    max-width: 215mm !important;
+    max-height: 322mm !important;
+  }
+
+  /* A4 Specific Print Rules (210 x 297 mm Satu Halaman Penuh) */
+  .printable-document.paper-a4 {
+    page: page-a4 !important;
+    max-width: 210mm !important;
+    max-height: 288mm !important;
+  }
+
   .page-break-after {
     page-break-after: always !important;
     break-after: page !important;
@@ -110,5 +139,13 @@
     padding-bottom: 1.5px !important;
     line-height: 1.15 !important;
     background-color: transparent !important;
+  }
+
+  /* F4 Table Rows: slightly more comfortable vertical padding to fill full 330mm height */
+  .paper-f4 table.report-table th,
+  .paper-f4 table.report-table td {
+    padding-top: 2.5px !important;
+    padding-bottom: 2.5px !important;
+    line-height: 1.22 !important;
   }
 }

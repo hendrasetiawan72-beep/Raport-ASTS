@@ -45,13 +45,45 @@ export const PrintSettingsView: React.FC = () => {
               </label>
               <select
                 value={printSettings.paperSize}
-                onChange={(e) => updatePrintSettings({ paperSize: e.target.value as any })}
+                onChange={(e) => {
+                  const newSize = e.target.value as any;
+                  updatePrintSettings({
+                    paperSize: newSize,
+                    documentFontSizePt: newSize === 'F4' ? 9.0 : 8.5,
+                  });
+                  showToast(
+                    'info',
+                    `Ukuran kertas diatur ke ${newSize === 'F4' ? 'F4 / Folio (215 x 330 mm) Satu Halaman Penuh' : newSize === 'A4' ? 'A4 (210 x 297 mm)' : 'A3'}.`
+                  );
+                }}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg outline-none font-semibold text-slate-800"
               >
                 <option value="A4">A4 (210 x 297 mm) — Standar Resmi</option>
-                <option value="F4">F4 / Folio (215 x 330 mm)</option>
+                <option value="F4">F4 / Folio (215 x 330 mm) — Satu Halaman Penuh</option>
                 <option value="A3">A3 (297 x 420 mm) — Khusus Leger Besar</option>
               </select>
+
+              {printSettings.paperSize === 'F4' ? (
+                <div className="mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-start gap-2">
+                  <span className="text-base leading-none">📄</span>
+                  <div>
+                    <b className="font-bold">Format F4 / Folio (215 × 330 mm) Aktif:</b>
+                    <p className="mt-0.5 text-[11px] text-emerald-800 leading-relaxed">
+                      Kertas F4 memiliki ruang vertikal ekstra 33 mm dibanding A4, sehingga tabel 14 mapel, deskripsi capaian, ekstrakurikuler, dan tanda tangan tertata lebih leluasa dan proporsional mengisi satu halaman penuh tanpa terpotong ke lembar kedua.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2 p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-start gap-2">
+                  <span className="text-base leading-none">📄</span>
+                  <div>
+                    <b className="font-bold">Format A4 (210 × 297 mm) Standar:</b>
+                    <p className="mt-0.5 text-[11px] text-blue-800 leading-relaxed">
+                      Dokumen dikunci dengan kerapatan kompak (8.5 pt) agar muat pas 1 halaman A4 standar.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -88,23 +120,31 @@ export const PrintSettingsView: React.FC = () => {
               <div className="flex justify-between items-center text-xs font-bold text-slate-800">
                 <span>Ukuran Huruf File Siap Cetak (Rapor PTS)</span>
                 <span className="font-mono text-blue-800 bg-white px-2 py-0.5 rounded border border-blue-200">
-                  {printSettings.documentFontSizePt || 8.5} pt
+                  {printSettings.documentFontSizePt || (printSettings.paperSize === 'F4' ? 9.0 : 8.5)} pt
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {[
-                  { label: '8.0 pt (Kompak)', val: 8.0 },
-                  { label: '8.5 pt (Pas 1 Hal A4)', val: 8.5 },
-                  { label: '9.0 pt (Standar)', val: 9.0 },
-                  { label: '9.5 pt (Sedang)', val: 9.5 },
-                  { label: '10.0 pt (Besar)', val: 10.0 },
-                ].map((opt) => (
+                {(printSettings.paperSize === 'F4'
+                  ? [
+                      { label: '8.5 pt (Kompak)', val: 8.5 },
+                      { label: '9.0 pt (Pas 1 Hal F4)', val: 9.0 },
+                      { label: '9.5 pt (Leluasa F4)', val: 9.5 },
+                      { label: '10.0 pt (Besar)', val: 10.0 },
+                    ]
+                  : [
+                      { label: '8.0 pt (Kompak)', val: 8.0 },
+                      { label: '8.5 pt (Pas 1 Hal A4)', val: 8.5 },
+                      { label: '9.0 pt (Standar)', val: 9.0 },
+                      { label: '9.5 pt (Sedang)', val: 9.5 },
+                      { label: '10.0 pt (Besar)', val: 10.0 },
+                    ]
+                ).map((opt) => (
                   <button
                     key={opt.val}
                     type="button"
                     onClick={() => updatePrintSettings({ documentFontSizePt: opt.val })}
                     className={`px-2.5 py-1 text-xs rounded-lg font-bold border transition-all ${
-                      printSettings.documentFontSizePt === opt.val
+                      (printSettings.documentFontSizePt || (printSettings.paperSize === 'F4' ? 9.0 : 8.5)) === opt.val
                         ? 'bg-blue-700 text-white border-blue-800 shadow-2xs'
                         : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                     }`}
@@ -118,14 +158,16 @@ export const PrintSettingsView: React.FC = () => {
                 min="7.5"
                 max="12.0"
                 step="0.1"
-                value={printSettings.documentFontSizePt || 8.5}
+                value={printSettings.documentFontSizePt || (printSettings.paperSize === 'F4' ? 9.0 : 8.5)}
                 onChange={(e) =>
                   updatePrintSettings({ documentFontSizePt: parseFloat(e.target.value) })
                 }
                 className="w-full accent-blue-600 cursor-pointer mt-1"
               />
               <div className="text-[11px] text-blue-900 font-medium">
-                * Disarankan 8.5 pt untuk memastikan seluruh 14 mata pelajaran & pengesahan muat tepat 1 halaman A4.
+                {printSettings.paperSize === 'F4'
+                  ? '* Disarankan 9.0 pt untuk format F4 Folio agar seluruh 14 mapel dan pengesahan mengisi satu halaman penuh secara seimbang.'
+                  : '* Disarankan 8.5 pt untuk memastikan seluruh 14 mata pelajaran & pengesahan muat tepat 1 halaman A4.'}
               </div>
             </div>
 
@@ -138,10 +180,10 @@ export const PrintSettingsView: React.FC = () => {
               />
               <div>
                 <div className="font-bold text-blue-950">
-                  Kunci Rapor Pasti 1 Halaman A4
+                  Kunci Rapor Pasti 1 Halaman Penuh ({printSettings.paperSize || 'A4'})
                 </div>
                 <div className="text-xs text-blue-800">
-                  Secara otomatis mengoptimalkan skala, margin, dan tinggi baris agar rapor tidak tumpah ke lembar kedua.
+                  Secara otomatis mengoptimalkan skala, margin, dan tinggi baris agar rapor tidak tumpah ke lembar kedua pada kertas {printSettings.paperSize === 'F4' ? 'F4 / Folio' : 'A4'}.
                 </div>
               </div>
             </label>

@@ -407,15 +407,18 @@ export function parseLegerExcel(
   // Helper to filter summary, footer, or signature rows
   const isSummaryRow = (text: string): boolean => {
     const clean = text.trim().toLowerCase();
-    if (!clean) return true;
+    if (!clean) return false;
     // Lewati baris yang diawali "rata-rata" (regex /^rata[\s-]*rata/)
     if (/^rata[\s-]*rata/i.test(clean)) return true;
     // Diawali kata "total"
     if (/^total/i.test(clean)) return true;
+    // Diawali kata "jumlah"
+    if (/^jumlah/i.test(clean)) return true;
     // Mengandung kata "mengetahui"
     if (clean.includes('mengetahui')) return true;
     // Baris tanda tangan NIP
     if (clean.startsWith('nip')) return true;
+    if (clean.startsWith('kepala sekolah')) return true;
     return false;
   };
 
@@ -1019,14 +1022,33 @@ export function parseLegerExcel(
       const row = rows[r];
       if (!Array.isArray(row) || row.length === 0) continue;
 
+      // Filter baris ringkasan: lewati jika ada indikator summary pada kolom awal A-E
+      let rowIsSummary = false;
+      for (let c = 0; c <= Math.min(4, row.length - 1); c++) {
+        const cellStr = String(row[c] || '').trim();
+        if (cellStr && isSummaryRow(cellStr)) {
+          rowIsSummary = true;
+          break;
+        }
+      }
+      if (rowIsSummary) {
+        continue;
+      }
+
       // Extract Name
       let rawName = String(row[mainNameCol] || '').trim();
-      if (!rawName || /^\d+$/.test(rawName)) {
+      if (!rawName || /^\d+$/.test(rawName) || !isNaN(Number(rawName))) {
         // Fallback: look for cell containing student name
         for (let c = 1; c <= Math.min(4, row.length - 1); c++) {
           if (c === foundClassCol) continue;
           const val = String(row[c] || '').trim();
-          if (val && !/^\d+$/.test(val) && val.length > 2 && !isSummaryRow(val)) {
+          if (
+            val &&
+            isNaN(Number(val)) &&
+            !/^\d+$/.test(val) &&
+            val.length > 2 &&
+            !isSummaryRow(val)
+          ) {
             rawName = val;
             break;
           }
@@ -1034,7 +1056,7 @@ export function parseLegerExcel(
       }
 
       // Filter baris ringkasan: lewati hanya baris yang diawali "rata-rata", "total", atau mengandung "mengetahui"
-      if (!rawName || isSummaryRow(rawName)) {
+      if (!rawName || isSummaryRow(rawName) || !isNaN(Number(rawName))) {
         continue;
       }
 
